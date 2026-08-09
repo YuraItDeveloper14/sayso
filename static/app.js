@@ -242,10 +242,29 @@ function renderTimers(timers) {
 
 /* ---------------------------------------------------------------- alarm */
 
+let alarmWatch = null;
+
 function renderAlarm(alarm) {
   const bar = el("alarm-bar");
   bar.hidden = !alarm.ringing;
   el("alarm-label").textContent = alarm.label || "timer";
+
+  // The banner is shown optimistically the moment a timer fires, so a missed
+  // "stopped" event used to leave it on screen for good. While it is up, keep
+  // asking the daemon whether anything is actually still ringing.
+  if (alarm.ringing && alarmWatch === null) {
+    alarmWatch = setInterval(async () => {
+      const state = await loadState().catch(() => null);
+      if (!state || !state.alarm.ringing) {
+        clearInterval(alarmWatch);
+        alarmWatch = null;
+        bar.hidden = true;
+      }
+    }, 4000);
+  } else if (!alarm.ringing && alarmWatch !== null) {
+    clearInterval(alarmWatch);
+    alarmWatch = null;
+  }
 }
 
 function renderExtension(extension) {
@@ -631,8 +650,16 @@ el("alarm-stop").addEventListener("click", () =>
   fetch("/api/alarm/stop", { method: "POST" })
 );
 
+// These read as documentation, so they must not fire real commands on a click —
+// one of them sets a timer, and an alarm nobody asked for is nobody's friend.
+// Clicking loads the phrase into the box; running it stays a deliberate act.
 document.querySelectorAll(".phrase").forEach((button) => {
-  button.addEventListener("click", () => runCommand(button.textContent));
+  button.addEventListener("click", () => {
+    const input = el("command-input");
+    input.value = button.textContent;
+    input.focus();
+    input.scrollIntoView({ block: "center", behavior: "smooth" });
+  });
 });
 
 transcriptEl.classList.add("waiting");
