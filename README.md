@@ -7,7 +7,7 @@
 An offline voice controller for your laptop, with a live web dashboard.
 Built for Iris Hacks 2026.
 
-The name is from the English *"by my say-so"* — you said so, so it happened.
+You stay where you are; you just say so.
 
 ---
 
