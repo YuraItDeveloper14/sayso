@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sayso — hold a key, say what you want</title>
+<meta name="description" content="Offline push-to-talk voice control for your laptop. A background daemon, a live web console, and a browser extension.">
+<link rel="stylesheet" href="static/style.css">
+<link rel="icon" href="static/logo.svg">
+<style>
+  /* Page-level layout only. Every colour and typeface is inherited from the
+     console's own stylesheet, so the site cannot drift away from the product. */
+  .page { max-width: 940px; margin: 0 auto; padding: 0 22px 72px; }
+
+  .hero { padding: 64px 0 44px; text-align: center; }
+  .hero img { width: 108px; height: 108px; }
+  .hero h1 {
+    font-family: var(--face); font-size: 62px; font-weight: 700;
+    letter-spacing: 0.03em; margin: 14px 0 6px; line-height: 1;
+  }
+  .hero .tagline { font-size: 22px; color: var(--cream); margin: 0 0 10px; }
+  .hero .sub { font-size: 15px; color: var(--sand); margin: 0 auto; max-width: 560px; line-height: 1.6; }
+
+  .cta { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 26px; }
+  .cta a {
+    font-family: var(--face); font-size: 13px; letter-spacing: 0.12em;
+    text-transform: uppercase; padding: 11px 22px; border-radius: 3px;
+    text-decoration: none; border: 1px solid var(--rail); color: var(--cream);
+  }
+  .cta a.primary { background: var(--amber); border-color: var(--amber); color: #1d1409; font-weight: 600; }
+  .cta a:hover { border-color: var(--amber); }
+
+  section.block { padding: 34px 0; border-top: 1px solid var(--rail); }
+  section.block h2 {
+    font-family: var(--face); font-size: 13px; font-weight: 600;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--sand);
+    margin: 0 0 20px;
+  }
+
+  .faces { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+  .face { background: var(--panel); border: 1px solid var(--rail); border-radius: 3px; padding: 18px; }
+  .face h3 { font-family: var(--face); font-size: 17px; margin: 0 0 6px; letter-spacing: 0.03em; }
+  .face p { margin: 0; font-size: 13.5px; color: var(--sand); line-height: 1.55; }
+  .face .tag {
+    display: inline-block; font-family: var(--face); font-size: 9.5px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber);
+    border: 1px solid rgba(240,168,48,0.35); border-radius: 2px;
+    padding: 1px 6px; margin-bottom: 10px;
+  }
+
+  .flow {
+    font-family: var(--data); font-size: 12.5px; color: var(--sand);
+    background: var(--panel); border: 1px solid var(--rail); border-radius: 3px;
+    padding: 18px; overflow-x: auto; line-height: 1.7; margin: 0;
+  }
+
+  table.commands { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.commands td { padding: 8px 12px; border-bottom: 1px solid var(--rail); vertical-align: top; }
+  table.commands td:first-child { font-family: var(--data); color: var(--cream); white-space: nowrap; }
+  table.commands td:last-child { color: var(--sand); }
+
+  pre.install {
+    background: var(--panel); border: 1px solid var(--rail); border-radius: 3px;
+    padding: 16px; overflow-x: auto; font-family: var(--data); font-size: 12.5px;
+    color: var(--cream); line-height: 1.7; margin: 0;
+  }
+
+  .note { font-size: 13px; color: var(--dim); line-height: 1.6; margin: 14px 0 0; }
+  .site-foot { text-align: center; padding: 30px 0 0; color: var(--dim); font-size: 12.5px; }
+  .site-foot a { color: var(--sand); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="hero">
+    <img src="static/logo.svg" alt="">
+    <h1>Sayso</h1>
+    <p class="tagline">Hold a key. Say what you want. It happens.</p>
+    <p class="sub">
+      Opening YouTube costs four steps: reach for the mouse, find the window,
+      click the address bar, type. The intent takes half a second to say. Sayso
+      removes everything in between — and it does it without sending your voice
+      anywhere.
+    </p>
+    <div class="cta">
+      <a class="primary" href="https://github.com/YuraItDeveloper14/sayso">Code on GitHub</a>
+      <a href="https://github.com/YuraItDeveloper14/sayso#running-it">Run it yourself</a>
+    </div>
+  </header>
+
+  <section class="block">
+    <h2>One system, three faces</h2>
+    <div class="faces">
+      <div class="face">
+        <span class="tag">Desktop</span>
+        <h3>The daemon</h3>
+        <p>A background process that owns the hotkey, the microphone and the
+           speech model. It works while you are in a game, a PDF or your editor —
+           anywhere, not just the browser.</p>
+      </div>
+      <div class="face">
+        <span class="tag">Web app</span>
+        <h3>The console</h3>
+        <p>A live dashboard on localhost: what it heard, what it did, your notes,
+           timers and connectors. Every command can be typed instead of spoken,
+           so it demos on a machine with no microphone.</p>
+      </div>
+      <div class="face">
+        <span class="tag">Extension</span>
+        <h3>The browser half</h3>
+        <p>Chrome and Edge. Adds what no desktop process can do from outside:
+           close a tab, switch tabs, reload, scroll. The toolbar icon turns red
+           while you are holding the key.</p>
+      </div>
+    </div>
+    <p class="note">
+      The same daemon drives all three. The console and the extension are views
+      onto it — kill either and every voice command still works.
+    </p>
+  </section>
+
+  <section class="block">
+    <h2>What happens when you speak</h2>
+    <pre class="flow">Ctrl+Alt+S held
+  ↓  pynput global hotkey            any app, any window
+  ↓  sounddevice, 16 kHz mono        straight into memory
+  ↓  faster-whisper tiny.en          on this machine, no network
+  ↓  regex intent grammar            under a millisecond
+  ↓  action                          browser · notes · timers · apps · speech
+  ↓  event bus  ──→  console + extension</pre>
+    <p class="note">
+      Recognition, parsing and the spoken replies all run locally. Unplug the
+      network and every one of them keeps working. The only parts that reach out
+      are the optional connectors, and the dashboard labels each one before you
+      turn it on.
+    </p>
+  </section>
+
+  <section class="block">
+    <h2>Things you can say</h2>
+    <table class="commands">
+      <tr><td>open youtube through google</td><td>the manual route, automated</td></tr>
+      <tr><td>note: finish the slides, email the mentor</td><td>saves two separate notes</td></tr>
+      <tr><td>remind me in 20 minutes to stretch</td><td>rings until you deal with it</td></tr>
+      <tr><td>when I say let's work, open notion and github</td><td>teaches a phrase, opens both</td></tr>
+      <tr><td>open downloads · open vs code</td><td>folders and installed apps</td></tr>
+      <tr><td>close tab · next tab · scroll down</td><td>with the extension installed</td></tr>
+      <tr><td>read my notes</td><td>answers out loud in a neural voice</td></tr>
+      <tr><td>undo that</td><td>takes back the last change</td></tr>
+    </table>
+  </section>
+
+  <section class="block">
+    <h2>Run it</h2>
+    <pre class="install">git clone https://github.com/YuraItDeveloper14/sayso
+cd sayso
+py -3.12 -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\python run.py</pre>
+    <p class="note">
+      The console opens at <code>127.0.0.1:5000</code>. The first run downloads
+      the speech model once, about 75 MB; after that you can turn the Wi-Fi off
+      entirely. There is nothing to sign up for.
+    </p>
+  </section>
+
+  <footer class="site-foot">
+    Built for Iris Hacks 2026 · <a href="https://github.com/YuraItDeveloper14/sayso">source</a>
+  </footer>
+
+</div>
+</body>
+</html>
