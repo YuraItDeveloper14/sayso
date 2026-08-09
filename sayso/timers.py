@@ -35,7 +35,6 @@ class TimerScheduler:
         self._path = path
         self._condition = threading.Condition()
         self._timers = []
-        self._missed = []
         self._on_fire = None
         self._next_id = 1
         self._load()
@@ -52,14 +51,12 @@ class TimerScheduler:
         except (json.JSONDecodeError, OSError):
             return
 
+        # A reminder whose moment passed while the app was closed is dropped
+        # rather than announced late: nobody wants six alarms at once on
+        # startup, and a reminder for a moment that is gone is just noise.
         now = time.time()
-        for timer in stored:
-            # A reminder whose moment passed while the app was closed is shown
-            # as missed rather than announced - nobody wants six alarms at once
-            # on startup.
-            (self._missed if timer["at"] <= now else self._timers).append(timer)
+        self._timers = [t for t in stored if t["at"] > now]
         self._next_id = max((t["id"] for t in stored), default=0) + 1
-        self._missed = self._missed[-10:]
 
     def _write(self):
         self._path.write_text(
@@ -108,14 +105,6 @@ class TimerScheduler:
         with self._condition:
             timers = sorted(self._timers, key=lambda t: t["at"])
         return [{**t, "remaining": max(0, t["at"] - now)} for t in timers]
-
-    def missed(self):
-        with self._condition:
-            return list(self._missed)
-
-    def clear_missed(self):
-        with self._condition:
-            self._missed = []
 
     # ----------------------------------------------------------------- loop
 

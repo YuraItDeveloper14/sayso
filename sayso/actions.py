@@ -1,4 +1,10 @@
-"""Execute a parsed Intent: drive the browser, edit notes, talk back."""
+"""Execute a parsed Intent: drive the browser, edit notes, talk back.
+
+Anything that changes stored state also registers how to reverse itself, so
+"undo that" can take back a misheard command. Anything that leaves the machine -
+a page opened, a note already copied to Notion - deliberately does not, because
+pretending it could be undone would be a lie.
+"""
 
 import re
 import threading
@@ -6,13 +12,30 @@ import time
 import webbrowser
 from dataclasses import dataclass, field
 
+from . import launcher
 from .aliases import store as alias_store
 from .config import settings
 from .connectors import registry
 from .events import bus
+from .extension import bridge
 from .intents import SEARCH_ENGINES, _search_url, resolve_target
 from .notes import store
+from .sounds import sounds
 from .timers import humanize, scheduler
+from .undo import stack
+
+BROWSER_ACTION_NAMES = {
+    "close_tab": "Closed the tab",
+    "new_tab": "Opened a new tab",
+    "reopen_tab": "Reopened the last tab",
+    "next_tab": "Next tab",
+    "previous_tab": "Previous tab",
+    "reload": "Reloaded the page",
+    "scroll_up": "Scrolled up",
+    "scroll_down": "Scrolled down",
+    "scroll_top": "Jumped to the top",
+    "scroll_bottom": "Jumped to the bottom",
+}
 
 
 @dataclass
@@ -54,7 +77,18 @@ def _spoken_list(notes):
     return " ".join(lines)
 
 
+# ------------------------------------------------------------------ opening
+
+
 def open_site(target):
+    # A phrase you taught outranks everything, including an installed app of
+    # the same name - you said explicitly what you meant by it.
+    if alias_store.lookup(target) is None:
+        kind, label, path = launcher.resolve(target)
+        if path is not None:
+            launcher.launch(path)
+            return Result(True, f"Opened {label} ({kind})", f"Opening {label}")
+
     label, url = resolve_target(target)
     if not url:
         # Multi-word and not a domain, so the user meant a search.
@@ -94,16 +128,14 @@ def site_search(query, engine):
         engine = "google"
     label, url = _search_url(engine, query)
     _open(url)
-    return Result(
-        True,
-        f'Searched {label} for "{query}"',
-        f"Searching {label} for {query}",
-        [url],
-    )
+    return Result(True, f'Searched {label} for "{query}"', f"Searching {label} for {query}", [url])
+
+
+# -------------------------------------------------------------------- notes
 
 
 def _mirror_to_connectors(texts):
-    """Send notes on to Obsidian, Notion and friends, off the critical path.
+    """Send notes on to Obsidian and friends, off the critical path.
 
     A connector can take seconds - an MCP server may have to start up - and the
     note is already saved locally, so none of that is worth making the user
@@ -126,6 +158,11 @@ def write_note(text, source="voice"):
         return Result(False, "Nothing to write down", "I did not catch the note")
 
     created = store.add(cleaned, source=source)
+    ids = [n["id"] for n in created]
+    stack.record(
+        f"writing {len(created)} note{'s' if len(created) != 1 else ''}",
+        lambda: store.delete_many(ids),
+    )
     _mirror_to_connectors([n["text"] for n in created])
 
     live = [c.name for c in registry.active()]
@@ -134,11 +171,7 @@ def write_note(text, source="voice"):
     if len(created) == 1:
         return Result(True, f"Noted: {created[0]['text']}{suffix}", "Noted")
     joined = "; ".join(n["text"] for n in created)
-    return Result(
-        True,
-        f"Noted {len(created)} items: {joined}{suffix}",
-        f"Noted {len(created)} items",
-    )
+    return Result(True, f"Noted {len(created)} items: {joined}{suffix}", f"Noted {len(created)} items")
 
 
 def read_notes():
@@ -155,6 +188,7 @@ def complete_note(position):
     if not note:
         return Result(False, f"No note at position {position}", "I could not find that note")
     store.toggle(note["id"])
+    stack.record(f'checking off "{note["text"]}"', lambda: store.toggle(note["id"]))
     return Result(True, f"Checked off: {note['text']}", f"Done: {note['text']}")
 
 
@@ -163,27 +197,30 @@ def delete_note(position):
     if not note:
         return Result(False, f"No note at position {position}", "I could not find that note")
     store.delete(note["id"])
+    stack.record(f'deleting "{note["text"]}"', lambda: store.restore([note]))
     return Result(True, f"Deleted: {note['text']}", f"Deleted {note['text']}")
 
 
 def clear_notes():
+    before = store.all()
     count = store.clear()
     if not count:
         return Result(True, "There was nothing to clear", "Your list was already empty")
+    stack.record(f"clearing {count} notes", lambda: store.restore(before))
     return Result(True, f"Cleared {count} notes", f"Cleared {count} notes")
+
+
+# ------------------------------------------------------------------- timers
 
 
 def set_timer(seconds, label):
     if seconds <= 0:
         return Result(False, "That is not a length of time", "I did not catch how long")
     timer = scheduler.add(seconds, label)
+    stack.record(f"the {humanize(seconds)} timer", lambda: scheduler.cancel(timer["id"]))
     spoken_length = humanize(seconds)
     what = f" to {timer['label']}" if label else ""
-    return Result(
-        True,
-        f"Timer set for {spoken_length}{what}",
-        f"Timer set for {spoken_length}{what}",
-    )
+    return Result(True, f"Timer set for {spoken_length}{what}", f"Timer set for {spoken_length}{what}")
 
 
 def cancel_timers():
@@ -201,10 +238,20 @@ def list_timers():
     return Result(True, " | ".join(parts), ". ".join(parts))
 
 
+def dismiss_alarm():
+    if sounds.stop_alarm():
+        return Result(True, "Alarm off", "")
+    return Result(True, "Nothing was ringing", "")
+
+
+# ---------------------------------------------------------------- shortcuts
+
+
 def teach_alias(phrase, target):
     saved = alias_store.add(phrase, target)
     if not saved:
         return Result(False, "That shortcut needs a name", "I did not catch the phrase")
+    stack.record(f'the shortcut "{saved["phrase"]}"', lambda: alias_store.remove(saved["phrase"]))
     label, url = resolve_target(saved["target"])
     where = url or saved["target"]
     return Result(
@@ -218,30 +265,48 @@ def forget_alias(phrase):
     removed = alias_store.remove(phrase)
     if not removed:
         return Result(False, f'No shortcut called "{phrase}"', "I do not know that shortcut")
+    stack.record(
+        f'forgetting "{removed["phrase"]}"',
+        lambda: alias_store.add(removed["phrase"], removed["target"]),
+    )
     return Result(True, f'Forgot "{removed["phrase"]}"', f"Forgot {removed['phrase']}")
 
 
 def list_aliases():
     aliases = alias_store.all()
     if not aliases:
-        return Result(
-            True,
-            "No shortcuts taught yet",
-            "You have not taught me any shortcuts yet",
-        )
+        return Result(True, "No shortcuts taught yet", "You have not taught me any shortcuts yet")
     parts = [f'{a["phrase"]} → {a["target"]}' for a in aliases]
     spoken = ". ".join(a["phrase"] for a in aliases)
     return Result(True, " | ".join(parts), f"You taught me: {spoken}")
 
 
+# -------------------------------------------------------------------- undo
+
+
+def undo():
+    description = stack.undo()
+    if description is None:
+        return Result(False, "Nothing to undo", "There is nothing to undo")
+    return Result(True, f"Undid {description}", f"Undid {description}")
+
+
+# ------------------------------------------------------------------ browser
+
+
+def browser_action(action):
+    label = BROWSER_ACTION_NAMES.get(action, action)
+    if not bridge.send(action):
+        return Result(
+            False,
+            "No browser extension connected — install it from the extension folder",
+            "The browser extension is not connected",
+        )
+    return Result(True, label, "")
+
+
 HANDLERS = {
     "open_site": lambda p: open_site(p["target"]),
-    "set_timer": lambda p: set_timer(p["seconds"], p["label"]),
-    "cancel_timers": lambda p: cancel_timers(),
-    "list_timers": lambda p: list_timers(),
-    "teach_alias": lambda p: teach_alias(p["phrase"], p["target"]),
-    "forget_alias": lambda p: forget_alias(p["phrase"]),
-    "list_aliases": lambda p: list_aliases(),
     "open_via_google": lambda p: open_via_google(p["target"]),
     "search": lambda p: search(p["query"]),
     "site_search": lambda p: site_search(p["query"], p["engine"]),
@@ -250,6 +315,15 @@ HANDLERS = {
     "complete_note": lambda p: complete_note(p["position"]),
     "delete_note": lambda p: delete_note(p["position"]),
     "clear_notes": lambda p: clear_notes(),
+    "set_timer": lambda p: set_timer(p["seconds"], p["label"]),
+    "cancel_timers": lambda p: cancel_timers(),
+    "list_timers": lambda p: list_timers(),
+    "dismiss_alarm": lambda p: dismiss_alarm(),
+    "teach_alias": lambda p: teach_alias(p["phrase"], p["target"]),
+    "forget_alias": lambda p: forget_alias(p["phrase"]),
+    "list_aliases": lambda p: list_aliases(),
+    "undo": lambda p: undo(),
+    "browser": lambda p: browser_action(p["action"]),
 }
 
 

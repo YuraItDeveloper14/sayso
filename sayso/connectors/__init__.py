@@ -26,6 +26,10 @@ TYPES = {
 # Starting points, all disabled until you fill them in. The command and env var
 # for a hosted app come from that app's own MCP documentation - `docs` points
 # at it. Check there before trusting the defaults below.
+#
+# Three, on purpose: one that proves notes can land in a local app with no
+# account at all, one that proves MCP works, and one that covers everything
+# else. A second MCP preset would add a row and no new capability.
 DEFAULT_CONFIG = {
     "obsidian": {
         "type": "local_file",
@@ -46,17 +50,6 @@ DEFAULT_CONFIG = {
         "tool": "",
         "args_map": {"content": "{text}"},
         "docs": "https://developers.notion.com/docs/mcp",
-    },
-    "todoist": {
-        "type": "mcp",
-        "label": "Todoist",
-        "enabled": False,
-        "command": "npx",
-        "args": ["-y", "@doist/todoist-mcp"],
-        "env": {"TODOIST_API_KEY": ""},
-        "tool": "",
-        "args_map": {"content": "{text}"},
-        "docs": "https://developer.todoist.com/",
     },
     "webhook": {
         "type": "webhook",

@@ -89,6 +89,31 @@ CASES = [
     ("remember to charge the laptop", "write_note",
      {"text": "charge the laptop"}),
 
+    # -- undo and silencing an alarm --------------------------------------
+    ("undo that", "undo", {}),
+    ("scratch that", "undo", {}),
+    ("take that back", "undo", {}),
+    ("stop", "dismiss_alarm", {}),
+    ("quiet", "dismiss_alarm", {}),
+
+    # -- tab control, handed to the extension ------------------------------
+    ("close tab", "browser", {"action": "close_tab"}),
+    ("close this tab", "browser", {"action": "close_tab"}),
+    ("new tab", "browser", {"action": "new_tab"}),
+    ("open a new tab", "browser", {"action": "new_tab"}),
+    ("reopen the last closed tab", "browser", {"action": "reopen_tab"}),
+    ("next tab", "browser", {"action": "next_tab"}),
+    ("go to the previous tab", "browser", {"action": "previous_tab"}),
+    ("reload the page", "browser", {"action": "reload"}),
+    ("refresh", "browser", {"action": "reload"}),
+    ("scroll down", "browser", {"action": "scroll_down"}),
+    ("scroll to the top", "browser", {"action": "scroll_top"}),
+    ("bottom of the page", "browser", {"action": "scroll_bottom"}),
+
+    # -- and the openings tab control must not steal ------------------------
+    ("open youtube", "open_site", {"target": "youtube"}),
+    ("open downloads", "open_site", {"target": "downloads"}),
+
     # -- nonsense should stay inert ---------------------------------------
     ("", "unknown", {}),
     ("uh yeah so anyway", "unknown", {}),

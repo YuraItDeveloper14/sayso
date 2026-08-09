@@ -1,3 +1,5 @@
+<img src="static/logo.svg" width="88" alt="">
+
 # Sayso
 
 **Hold a key. Say what you want. It happens.**
@@ -177,6 +179,94 @@ announced late.
 Taught phrases are resolved before the built-in site list, so Sayso speaks your
 vocabulary rather than a fixed menu.
 
+**This laptop, not just the browser**
+
+| Say | It does |
+|---|---|
+| `open downloads` | opens the folder |
+| `open vs code` | starts the app |
+
+Apps are found by reading the Start Menu, which Windows already maintains, so
+there is no list of applications to keep up to date. A name that matches neither
+a folder nor an installed app falls through to the web, so `open youtube` still
+opens YouTube.
+
+**Taking it back**
+
+| Say | It does |
+|---|---|
+| `undo that` | reverses the last change |
+| `scratch that` | same |
+
+Recognition is never perfect, so the interesting question is not whether it
+mishears you but how fast you can recover. Every action that changes stored
+state — notes written, checked off, deleted, cleared, shortcuts taught or
+forgotten, timers set — registers how to reverse itself. Actions that left the
+machine do not: a page is already open and a note already copied to Notion is
+already there, and pretending otherwise would be a lie.
+
+**Tabs** — these need the browser extension, see below.
+
+| Say | It does |
+|---|---|
+| `close tab` · `new tab` · `reopen tab` | what it says |
+| `next tab` · `previous tab` | moves between them |
+| `reload` · `scroll down` · `bottom of the page` | in the active tab |
+
+---
+
+## Sound
+
+The app lives in the background, so most of the time the dashboard is not on
+screen and the only thing that can tell you anything is a noise.
+
+A short rising blip on key down, a falling one on key up — that is the whole
+confirmation that it heard you reach for the key. When a timer comes due it
+plays a rising arpeggio and **keeps playing until it is dismissed**, because a
+reminder you can sleep through is not a reminder. Speaking, pressing the hotkey,
+or the Stop button on the dashboard all dismiss it; it also gives up after a
+couple of minutes rather than following you around the building.
+
+Every sound is synthesised from sine waves at play time. No audio files ship
+with the project and nothing is downloaded.
+
+---
+
+## The browser extension
+
+A browser extension **cannot be this product on its own**, and it is worth being
+precise about why. Chrome gives no global hotkey outside its own window, no
+background microphone without a visible tab, no way to write a file into your
+Obsidian vault, and no way to launch an MCP server. An extension-only Sayso
+would stop working the moment you switched to a game, a PDF or your editor —
+which is the entire reason it exists.
+
+So the extension is a second face on the same daemon rather than a replacement.
+It connects to the API over localhost, and it adds exactly what Python cannot
+do from outside the browser: control of your tabs.
+
+- **The toolbar icon is the tally lamp.** It turns red while you are holding the
+  key. That is why there is no content script — the always-visible indicator
+  costs no page access at all.
+- **The popup** is a small console: live status, level meter, last transmission,
+  and a box to type a command.
+
+Install it from `chrome://extensions` → Developer mode → Load unpacked →
+`extension/`. It works in Chrome and Edge.
+
+**On the permissions.** `tabs`, `sessions` and `scripting` are what tab control
+is made of. `<all_urls>` is there because scrolling means running a line of
+script in the page you are looking at, and voice is not a click, so `activeTab`
+does not apply.
+
+**On letting a browser talk to a daemon.** The server only listens on
+`127.0.0.1`, but that alone would not stop a web page you happen to be visiting
+from firing requests at it. The daemon sends CORS headers only when the request
+comes from a `chrome-extension://` or `moz-extension://` origin. Browsers set
+that header themselves and a page cannot forge one, so that is the whole check —
+verified by asking as an extension, as a website, and as a local dev server, and
+confirming only the first two are allowed.
+
 ---
 
 ## Sending notes to apps you actually use
@@ -192,8 +282,11 @@ Four are configured from the dashboard's patch bay:
 |---|---|---|---|
 | **Obsidian** | works offline | nothing | A vault is a folder of Markdown files. Point it at a note inside one and captures land there. No account, no token. Also fits Logseq and Foam. |
 | **Notion** | needs internet | an integration token | Runs Notion's MCP server as a subprocess. |
-| **Todoist** | needs internet | an API token | Same, for tasks rather than pages. |
 | **Webhook** | needs internet | a URL | The escape hatch: Zapier, Make, n8n, Discord, your own server. |
+
+Three, on purpose: one that proves a note can land in a real app with no account
+at all, one that proves MCP works, and one that covers everything else. A second
+MCP preset was cut — it added a row to the patch bay and no new capability.
 
 Each row in the patch bay carries that label, so the moment a connector costs
 you the offline guarantee, the dashboard says so on the row you are about to
@@ -336,6 +429,22 @@ seconds of `npx` startup every time. Each connector now owns one background
 event loop and holds a single session open on it, with calls handed over by
 `run_coroutine_threadsafe`.
 
+**Stopping the alarm killed the entire process.** Not an exception — the whole
+Python process vanished, taking the web server with it. `sounddevice`'s
+module-level `play`/`stop` drive one shared stream, and aborting it from the
+Flask request thread while the alarm thread sat blocked on it took PortAudio
+down at the C level. Now every sound writes to a stream it opened itself, in
+small chunks, and stopping only sets a flag the ringing thread notices between
+chunks. Nothing reaches across threads into the audio library at all. The
+regression test stops the alarm from a foreign thread three times over, with
+clicks firing on top, and checks the process is still standing.
+
+**"Stopped" and "still ringing" were both true for a second.** The dashboard
+asked whether the alarm thread was alive, but that thread stays inside a
+blocking write for up to a second after being told to stop, so the banner
+flicked back on right after you dismissed it. State the user can see should not
+be inferred from thread liveness; it is an explicit flag now.
+
 ---
 
 ## Project structure
@@ -346,23 +455,28 @@ sayso/
   audio.py      push-to-talk capture and the level meter
   stt.py        faster-whisper wrapper
   intents.py    the command grammar
-  actions.py    executes intents: browser, notes, timers, shortcuts, speech
+  actions.py    executes intents, and registers how to undo them
   notes.py      note storage and dictation splitting
   timers.py     reminder scheduler, one thread, sleeps until the next deadline
   aliases.py    phrases you taught it
+  launcher.py   local folders and Start Menu apps
+  undo.py       the reversal stack
+  sounds.py     synthesised clicks and the alarm
   hotkey.py     global push-to-talk listener
   daemon.py     orchestration and threading
   tts.py        offline speech output
-  events.py     pub/sub bus feeding the dashboard
-  web.py        Flask routes and the SSE stream
+  events.py     pub/sub bus feeding the dashboard and the extension
+  extension.py  bridge to the browser, and whether it is connected
+  web.py        Flask routes, the SSE stream, extension-only CORS
   history.py    rolling command log
   connectors/
     base.py       what every connector provides
     local_file.py Obsidian and any Markdown vault
     webhook.py    anything with an inbound URL
-    mcp_server.py MCP client: Notion, Todoist, and the rest
+    mcp_server.py MCP client for hosted apps
+extension/      the browser half: tab control and a tally lamp on the toolbar
 templates/      dashboard markup
-static/         dashboard styles and client
+static/         dashboard styles, client, logo
 tests/          intent parser tests
 run.py          starts the daemon and the dashboard
 ```

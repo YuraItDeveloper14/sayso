@@ -94,6 +94,25 @@ class NoteStore:
             self._write()
         return count
 
+    def delete_many(self, note_ids):
+        """Used by undo to take back a note that was just written."""
+        wanted = set(note_ids)
+        with self._lock:
+            kept = [n for n in self._notes if n["id"] not in wanted]
+            removed = len(self._notes) - len(kept)
+            self._notes = kept
+            self._write()
+        return removed
+
+    def restore(self, notes):
+        """Put a list of notes back exactly as they were."""
+        with self._lock:
+            existing = {n["id"] for n in self._notes}
+            self._notes.extend(n for n in notes if n["id"] not in existing)
+            self._notes.sort(key=lambda n: n["created"])
+            self._write()
+        return len(self._notes)
+
     def by_position(self, position):
         """Resolve 'note 2' or 'the last note' to an actual note."""
         pending = self.pending()

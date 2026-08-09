@@ -18,15 +18,35 @@ from .config import ROOT, settings
 from .connectors import registry
 from .daemon import daemon
 from .events import bus
+from .extension import bridge
 from .history import history
 from .notes import store
+from .sounds import sounds
 from .timers import scheduler
+from .undo import stack
 
 app = Flask(
     __name__,
     template_folder=str(ROOT / "templates"),
     static_folder=str(ROOT / "static"),
 )
+
+
+@app.after_request
+def allow_extension_origin(response):
+    """Let the browser extension talk to the daemon, and nobody else.
+
+    The server only listens on 127.0.0.1, but that alone would not stop a web
+    page you happen to be visiting from scripting requests at it. Browsers set
+    the Origin header themselves and a page cannot forge a chrome-extension://
+    one, so matching on that is the whole check.
+    """
+    origin = request.headers.get("Origin", "")
+    if origin.startswith(("chrome-extension://", "moz-extension://")):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+    return response
 
 
 def _state():
@@ -37,9 +57,11 @@ def _state():
         "notes": store.all(),
         "history": history.recent(),
         "timers": scheduler.active(),
-        "missed_timers": scheduler.missed(),
         "aliases": alias_store.all(),
         "connectors": registry.describe_all(),
+        "extension": bridge.describe(),
+        "alarm": {"ringing": sounds.alarm_ringing, "label": sounds.alarm_label},
+        "undo": stack.last,
         "settings": {
             "hotkey": settings.hotkey_label,
             "model": settings.model_size,
@@ -148,9 +170,42 @@ def api_cancel_timer(timer_id):
 @app.route("/api/timers/clear", methods=["POST"])
 def api_clear_timers():
     count = scheduler.cancel_all()
-    scheduler.clear_missed()
     bus.publish("timers_changed")
     return jsonify({"cancelled": count})
+
+
+# ------------------------------------------------------------ alarm & undo
+
+
+@app.route("/api/alarm/stop", methods=["POST"])
+def api_stop_alarm():
+    was_ringing = sounds.stop_alarm()
+    bus.publish("alarm_changed")
+    return jsonify({"stopped": was_ringing})
+
+
+@app.route("/api/undo", methods=["POST"])
+def api_undo():
+    description = stack.undo()
+    bus.publish("state_changed")
+    if description is None:
+        return jsonify({"undone": None}), 200
+    return jsonify({"undone": description})
+
+
+# -------------------------------------------------------------- extension
+
+
+@app.route("/api/extension/ping", methods=["POST", "OPTIONS"])
+def api_extension_ping():
+    if request.method == "OPTIONS":
+        return ("", 204)
+    body = request.json or {}
+    first_time = not bridge.connected
+    bridge.ping(body.get("browser", ""))
+    if first_time:
+        bus.publish("extension_changed")
+    return jsonify({"ok": True, "hotkey": settings.hotkey_label})
 
 
 # ----------------------------------------------------------------- aliases

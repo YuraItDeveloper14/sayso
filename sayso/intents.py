@@ -266,6 +266,60 @@ def _list_aliases(match, text):
     return Intent("list_aliases")
 
 
+# Recovery, and silencing a ringing alarm. Both are short phrases people say
+# reflexively, so they are matched before anything can claim them.
+
+
+@rule("undo", r"^(?:undo(?: that| it| the last one)?|scratch that|take that back|cancel that)$")
+def _undo(match, text):
+    return Intent("undo")
+
+
+@rule("dismiss_alarm", r"^(?:stop|dismiss|enough|quiet|silence|shut up|turn it off|got it|ok|okay)$")
+def _dismiss_alarm(match, text):
+    return Intent("dismiss_alarm")
+
+
+# Tab control. The daemon cannot do any of this itself - it is handed to the
+# browser extension, which is why these fail loudly when nothing is connected.
+
+
+@rule("browser", r"^close (?:the |this )?tab$")
+def _close_tab(match, text):
+    return Intent("browser", {"action": "close_tab"})
+
+
+@rule("browser", r"^(?:open (?:a )?)?new tab$")
+def _new_tab(match, text):
+    return Intent("browser", {"action": "new_tab"})
+
+
+@rule("browser", r"^reopen (?:the )?(?:last )?(?:closed )?tab$")
+def _reopen_tab(match, text):
+    return Intent("browser", {"action": "reopen_tab"})
+
+
+@rule("browser", r"^(?:go to (?:the )?)?next tab$")
+def _next_tab(match, text):
+    return Intent("browser", {"action": "next_tab"})
+
+
+@rule("browser", r"^(?:go to (?:the )?)?(?:previous|last) tab$")
+def _previous_tab(match, text):
+    return Intent("browser", {"action": "previous_tab"})
+
+
+@rule("browser", r"^(?:reload|refresh)(?: (?:the|this) page)?$")
+def _reload(match, text):
+    return Intent("browser", {"action": "reload"})
+
+
+@rule("browser", r"^scroll (?:to the )?(?P<where>up|down|top|bottom)$")
+@rule("browser", r"^(?:go to (?:the )?)?(?P<where>top|bottom) of (?:the )?page$")
+def _scroll(match, text):
+    return Intent("browser", {"action": f"scroll_{match.group('where')}"})
+
+
 @rule("read_notes", rf"^(?:read|read out|read back|say|recite)\b.*\b{NOTE_WORDS}\b")
 @rule("read_notes", rf"^(?:what(?:'s| is| are)?|tell me|show me|list)\b.*\b{NOTE_WORDS}\b")
 @rule("read_notes", r"^what do i have\b.*$")

@@ -12,16 +12,24 @@
 <!-- Status rail: the strip across the top of a rack unit. -->
 <header class="rail">
   <div class="rail-brand">
-    <span class="rail-mark" aria-hidden="true"></span>
+    <img class="rail-mark" src="{{ url_for('static', filename='logo.svg') }}" alt="" width="26" height="26">
     <span class="rail-name">Sayso</span>
   </div>
   <dl class="rail-readouts">
     <div class="readout"><dt>Model</dt><dd>{{ model }}</dd></div>
     <div class="readout"><dt>Speech</dt><dd id="rail-engine">starting</dd></div>
     <div class="readout"><dt>Links</dt><dd id="rail-links">none</dd></div>
+    <div class="readout"><dt>Browser</dt><dd id="rail-extension">no extension</dd></div>
   </dl>
   <p class="rail-ptt">Hold <kbd>{{ hotkey }}</kbd> to talk</p>
 </header>
+
+<!-- Only on screen while a reminder is actually ringing. -->
+<div class="alarm-bar" id="alarm-bar" hidden>
+  <span class="alarm-lamp" aria-hidden="true"></span>
+  <span class="alarm-text">Reminder: <strong id="alarm-label"></strong></span>
+  <button type="button" id="alarm-stop">Stop</button>
+</div>
 
 <!-- Hero: the talkback strip. Tally lamp, meter, and what you just said. -->
 <section class="desk">
@@ -54,7 +62,10 @@
   <section class="panel panel-log">
     <div class="panel-head">
       <h2 class="panel-label">Log</h2>
-      <button class="ghost" id="clear-history">Clear</button>
+      <span class="head-actions">
+        <button class="ghost" id="undo" title="Take back the last change">Undo</button>
+        <button class="ghost" id="clear-history">Clear</button>
+      </span>
     </div>
     <ol class="log" id="feed">
       <li class="empty">Nothing yet. Speak, or type a command below.</li>
@@ -139,7 +150,19 @@
         <h3>Teach it</h3>
         <button class="phrase">when I say my class open classroom.google.com</button>
         <button class="phrase">what shortcuts do I have</button>
-        <button class="phrase">forget my class</button>
+        <button class="phrase">undo that</button>
+      </div>
+      <div class="phrase-group">
+        <h3>This laptop</h3>
+        <button class="phrase">open downloads</button>
+        <button class="phrase">open vs code</button>
+      </div>
+      <div class="phrase-group">
+        <h3>Tabs <span class="needs-ext">needs the extension</span></h3>
+        <button class="phrase">close tab</button>
+        <button class="phrase">next tab</button>
+        <button class="phrase">scroll down</button>
+        <button class="phrase">reopen tab</button>
       </div>
     </div>
   </section>

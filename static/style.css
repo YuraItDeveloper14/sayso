@@ -85,13 +85,7 @@ kbd {
 
 .rail-brand { display: flex; align-items: center; gap: 8px; }
 
-.rail-mark {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--amber);
-  box-shadow: 0 0 9px rgba(240, 168, 48, 0.8);
-}
+.rail-mark { display: block; width: 26px; height: 26px; }
 
 .rail-name {
   font-family: var(--face);
@@ -120,6 +114,46 @@ kbd {
 }
 
 .rail-ptt { margin: 0 0 0 auto; font-size: 12.5px; color: var(--sand); }
+
+/* ------------------------------------------------------------- alarm bar */
+
+/* Only on screen while something is actually ringing, so its presence alone
+   is the message. */
+.alarm-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: #3a1409;
+  border-bottom: 1px solid var(--ember);
+}
+
+.alarm-lamp {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--ember);
+  box-shadow: 0 0 12px var(--ember);
+  animation: lamp 0.75s ease-in-out infinite;
+  flex: none;
+}
+
+.alarm-text { flex: 1; font-size: 14px; color: var(--cream); }
+.alarm-text strong { color: var(--amber); }
+
+.alarm-bar button {
+  background: var(--ember);
+  border: none;
+  border-radius: 2px;
+  color: #1d0c06;
+  font-family: var(--face);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  cursor: pointer;
+}
 
 /* -------------------------------------------------------------- the desk */
 
@@ -301,6 +335,17 @@ kbd {
 }
 
 .hint { font-size: 11px; color: var(--dim); }
+
+.head-actions { display: flex; gap: 4px; }
+
+.needs-ext {
+  font-family: var(--body);
+  font-size: 9.5px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--amber);
+  margin-left: 5px;
+}
 
 .ghost {
   background: none;

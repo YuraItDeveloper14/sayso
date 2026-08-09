@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+<header class="head">
+  <span class="lamp" id="lamp" data-state="loading"></span>
+  <span class="name">Sayso</span>
+  <span class="state" id="state">connecting</span>
+</header>
+
+<div class="meter" id="meter" role="img" aria-label="Microphone level"></div>
+
+<p class="said" id="said">Hold the key and speak.</p>
+<p class="did" id="did"></p>
+
+<form class="composer" id="composer" autocomplete="off">
+  <input type="text" id="command" placeholder="Or type a command" aria-label="Type a command">
+  <button type="submit">Run</button>
+</form>
+
+<ul class="tips">
+  <li>close tab</li>
+  <li>next tab</li>
+  <li>scroll down</li>
+  <li>reopen tab</li>
+</ul>
+
+<p class="foot" id="foot">The daemon must be running on this machine.</p>
+
+<script src="popup.js"></script>
+</body>
+</html>

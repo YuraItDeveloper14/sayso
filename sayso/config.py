@@ -27,6 +27,11 @@ DEFAULTS = {
     "hotkey_modifiers": ["ctrl", "alt"],
     "hotkey_key": "s",
     "speak_replies": True,
+    # Short blips on key down and key up. The app runs in the background, so
+    # without them you have no confirmation it is listening.
+    "click_sounds": True,
+    # A timer that comes due keeps ringing until it is dismissed.
+    "alarm_sound": True,
     # Pause between opening Google and opening the destination, so the
     # "through Google" route is actually visible on screen.
     "google_hop_delay": 1.2,

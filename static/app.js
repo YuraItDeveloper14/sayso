@@ -32,12 +32,39 @@ const STATE_WORDS = {
   error: "fault",
 };
 
+/* What the log says happened. The parser's own intent names are useful for
+   debugging and meaningless to anyone reading the screen. */
+const INTENT_LABELS = {
+  open_site: "opened",
+  open_via_google: "via Google",
+  search: "searched",
+  site_search: "searched",
+  write_note: "noted",
+  read_notes: "read out",
+  complete_note: "checked off",
+  delete_note: "deleted",
+  clear_notes: "cleared",
+  set_timer: "timer set",
+  cancel_timers: "timers off",
+  list_timers: "timers",
+  dismiss_alarm: "alarm off",
+  teach_alias: "learned",
+  forget_alias: "forgot",
+  list_aliases: "shortcuts",
+  undo: "undone",
+  browser: "browser",
+  unknown: "not understood",
+};
+
 /* Which panel each stream event invalidates. */
 const REFRESHERS = {
   notes_changed: renderNotesFromState,
   timers_changed: renderTimersFromState,
   aliases_changed: renderAliasesFromState,
   connectors_changed: renderConnectorsFromState,
+  extension_changed: renderExtensionFromState,
+  alarm_changed: renderAlarmFromState,
+  state_changed: renderAll,
 };
 
 let openJack = null; // which connector row is expanded
@@ -127,7 +154,7 @@ function logEntry(entry) {
 
   const intent = document.createElement("span");
   intent.className = "entry-intent";
-  intent.textContent = entry.intent;
+  intent.textContent = INTENT_LABELS[entry.intent] || entry.intent;
 
   li.append(time, body, intent);
   return li;
@@ -184,11 +211,7 @@ function renderNotes(notes) {
 
 /* --------------------------------------------------------------- timers */
 
-let liveTimers = [];
-
-function renderTimers(timers, missed) {
-  liveTimers = timers;
-
+function renderTimers(timers) {
   const rows = timers.map((timer) => {
     const li = document.createElement("li");
     li.className = "timer";
@@ -214,20 +237,21 @@ function renderTimers(timers, missed) {
     return li;
   });
 
-  (missed || []).forEach((timer) => {
-    const li = document.createElement("li");
-    li.className = "timer missed";
-    const when = document.createElement("span");
-    when.className = "timer-remaining";
-    when.textContent = "missed";
-    const label = document.createElement("span");
-    label.className = "timer-label";
-    label.textContent = timer.label;
-    li.append(when, label);
-    rows.push(li);
-  });
-
   fill(timersEl, rows, "Say “remind me in 20 minutes to stretch”.");
+}
+
+/* ---------------------------------------------------------------- alarm */
+
+function renderAlarm(alarm) {
+  const bar = el("alarm-bar");
+  bar.hidden = !alarm.ringing;
+  el("alarm-label").textContent = alarm.label || "timer";
+}
+
+function renderExtension(extension) {
+  el("rail-extension").textContent = extension.connected
+    ? `${extension.browser || "connected"}`
+    : "no extension";
 }
 
 // One ticker for every countdown, rather than one per row.
@@ -451,23 +475,30 @@ async function renderAll() {
   setStatus(state.status, state.detail);
   renderLog(state.history);
   renderNotes(state.notes);
-  renderTimers(state.timers, state.missed_timers);
+  renderTimers(state.timers);
   renderAliases(state.aliases);
   renderConnectors(state.connectors);
+  renderAlarm(state.alarm);
+  renderExtension(state.extension);
 }
 
 async function renderNotesFromState() {
   renderNotes((await loadState()).notes);
 }
 async function renderTimersFromState() {
-  const state = await loadState();
-  renderTimers(state.timers, state.missed_timers);
+  renderTimers((await loadState()).timers);
 }
 async function renderAliasesFromState() {
   renderAliases((await loadState()).aliases);
 }
 async function renderConnectorsFromState() {
   renderConnectors((await loadState()).connectors);
+}
+async function renderAlarmFromState() {
+  renderAlarm((await loadState()).alarm);
+}
+async function renderExtensionFromState() {
+  renderExtension((await loadState()).extension);
 }
 
 function connect() {
@@ -507,6 +538,7 @@ function connect() {
         transcriptEl.textContent = `Reminder: ${event.timer.label}`;
         transcriptEl.classList.remove("waiting");
         resultEl.textContent = "";
+        renderAlarm({ ringing: true, label: event.timer.label });
         break;
       case "connector":
         resultEl.textContent = event.ok
@@ -587,6 +619,17 @@ el("clear-history").addEventListener("click", async () => {
   await fetch("/api/history/clear", { method: "POST" });
   renderLog([]);
 });
+
+el("undo").addEventListener("click", async () => {
+  const res = await fetch("/api/undo", { method: "POST" });
+  const data = await res.json();
+  resultEl.textContent = data.undone ? `Undid ${data.undone}` : "Nothing to undo";
+  resultEl.classList.toggle("bad", !data.undone);
+});
+
+el("alarm-stop").addEventListener("click", () =>
+  fetch("/api/alarm/stop", { method: "POST" })
+);
 
 document.querySelectorAll(".phrase").forEach((button) => {
   button.addEventListener("click", () => runCommand(button.textContent));

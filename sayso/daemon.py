@@ -15,6 +15,7 @@ from .config import settings
 from .events import bus
 from .history import history
 from .hotkey import PushToTalk
+from .sounds import sounds
 from .stt import transcriber
 from .timers import scheduler
 from .tts import speaker
@@ -30,6 +31,9 @@ REFRESH_EVENTS = {
     "cancel_timers": "timers_changed",
     "teach_alias": "aliases_changed",
     "forget_alias": "aliases_changed",
+    # Undo can touch any panel, so it asks for a full resync.
+    "undo": "state_changed",
+    "dismiss_alarm": "alarm_changed",
 }
 
 
@@ -61,12 +65,13 @@ class SaysoDaemon:
         self.hotkey.start()
 
     def _on_timer(self, timer):
-        """A reminder came due. Say it out loud and show it on the dashboard."""
-        spoken = f"Reminder: {timer['label']}"
+        """A reminder came due: say it, then keep ringing until it is dealt with."""
         bus.publish("timer_fired", timer=timer)
         bus.publish("timers_changed")
         if settings.speak_replies:
-            speaker.say(spoken)
+            speaker.say(f"Reminder: {timer['label']}")
+        if settings.alarm_sound:
+            sounds.start_alarm(timer["label"])
 
     def _load_model(self):
         bus.set_status(events.LOADING, f"loading {settings.model_size}")
@@ -87,17 +92,27 @@ class SaysoDaemon:
     # ----------------------------------------------------------------- hotkey
 
     def _on_hold_start(self):
+        # Reaching for the key is how you react to a ringing alarm, so treat it
+        # as dismissing one.
+        if sounds.stop_alarm():
+            bus.publish("alarm_changed")
+
         try:
             self.recorder.start()
         except MicUnavailable as exc:
             bus.set_status(events.ERROR, "microphone unavailable")
             bus.publish("log", level="error", message=f"Microphone error: {exc}")
             return
+
+        if settings.click_sounds:
+            sounds.click_on()
         detail = "listening" if self.model_ready else "listening (model still loading)"
         bus.set_status(events.LISTENING, detail)
 
     def _on_hold_stop(self):
         audio = self.recorder.stop()
+        if settings.click_sounds:
+            sounds.click_off()
         if audio is None:
             bus.set_status(events.IDLE, "too short, ignored")
             return
@@ -134,6 +149,10 @@ class SaysoDaemon:
 
     def _dispatch(self, text, started, source):
         bus.set_status(events.EXECUTING, "running command")
+        # Speaking at all is an answer to a ringing alarm.
+        if sounds.stop_alarm():
+            bus.publish("alarm_changed")
+
         intent = intents.parse(text)
         # So a note remembers whether it was spoken or typed.
         intent.params.setdefault("source", source)
