@@ -1,4 +1,4 @@
-﻿"""Settings for StaySo, persisted to data/settings.json."""
+﻿"""Settings for SaySo, persisted to data/settings.json."""
 
 import json
 from pathlib import Path

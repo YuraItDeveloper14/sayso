@@ -182,7 +182,7 @@ def _mirror_to_connectors(texts):
             for name, ok, detail in registry.deliver_note(text):
                 bus.publish("connector", connector=name, ok=ok, detail=detail, text=text)
 
-    threading.Thread(target=deliver, daemon=True, name="stayso-connectors").start()
+    threading.Thread(target=deliver, daemon=True, name="sayso-connectors").start()
 
 
 def write_note(text, source="voice"):

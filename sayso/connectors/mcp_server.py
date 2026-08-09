@@ -1,15 +1,15 @@
 ﻿"""Talk to a real app through an MCP server.
 
 MCP (Model Context Protocol) servers are how Notion, Todoist, Linear and a
-growing list of apps expose their actions. Each one is a process StaySo launches
+growing list of apps expose their actions. Each one is a process SaySo launches
 and speaks to over stdin/stdout, so adding an app means adding a config entry
 rather than writing an API client.
 
-StaySo is not an LLM, so it does not guess which tool to call: the config names
+SaySo is not an LLM, so it does not guess which tool to call: the config names
 the tool and how to fill its arguments. `{text}` in any argument is replaced
 with the note. Call `list_tools()` to see what a server offers before mapping it.
 
-The MCP SDK is async and the rest of StaySo is threads, so each connector owns
+The MCP SDK is async and the rest of SaySo is threads, so each connector owns
 one background event loop and keeps a single session open on it. Launching a
 server per note would cost seconds of `npx` startup every time.
 """
@@ -123,7 +123,7 @@ class MCPConnector(Connector):
 
             self._ready.clear()
             self._thread = threading.Thread(
-                target=self._run_loop, daemon=True, name=f"stayso-mcp-{self.name}"
+                target=self._run_loop, daemon=True, name=f"sayso-mcp-{self.name}"
             )
             self._thread.start()
 

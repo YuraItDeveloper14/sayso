@@ -38,7 +38,7 @@ REFRESH_EVENTS = {
 }
 
 
-class StaySoDaemon:
+class SaySoDaemon:
     def __init__(self):
         self.recorder = Recorder()
         self.hotkey = PushToTalk(
@@ -50,7 +50,7 @@ class StaySoDaemon:
         )
         self._jobs = queue.Queue()
         self._worker = threading.Thread(
-            target=self._work, daemon=True, name="stayso-worker"
+            target=self._work, daemon=True, name="sayso-worker"
         )
         self._started = False
         self.model_ready = False
@@ -63,7 +63,7 @@ class StaySoDaemon:
         self._started = True
         self._worker.start()
         scheduler.set_callback(self._on_timer)
-        threading.Thread(target=self._load_model, daemon=True, name="stayso-load").start()
+        threading.Thread(target=self._load_model, daemon=True, name="sayso-load").start()
         self.hotkey.start()
 
     def _on_timer(self, timer):
@@ -221,4 +221,4 @@ class StaySoDaemon:
         self._jobs.put(("text", text, time.time()))
 
 
-daemon = StaySoDaemon()
+daemon = SaySoDaemon()

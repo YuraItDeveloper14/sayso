@@ -111,7 +111,7 @@ class Interpreter:
                 headers={
                     "Authorization": f"Bearer {key}",
                     "Content-Type": "application/json",
-                    "X-Title": "StaySo",
+                    "X-Title": "SaySo",
                 },
                 json={
                     "model": settings.llm_model,

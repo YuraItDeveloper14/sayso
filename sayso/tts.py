@@ -1,4 +1,4 @@
-﻿"""The voice StaySo answers in.
+﻿"""The voice SaySo answers in.
 
 Two engines, both offline. Piper is a small neural voice that runs on the CPU
 and sounds like a person; Windows SAPI5 is the robot that is already installed.
@@ -39,7 +39,7 @@ class Speaker:
         self._voice_tried = False
         self.engine = "starting"
         self.last_error = None
-        self._thread = threading.Thread(target=self._run, daemon=True, name="stayso-tts")
+        self._thread = threading.Thread(target=self._run, daemon=True, name="sayso-tts")
         self._thread.start()
 
     # ---------------------------------------------------------------- piper

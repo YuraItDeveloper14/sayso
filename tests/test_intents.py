@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from stayso.intents import parse, resolve_target, split_targets  # noqa: E402
+from sayso.intents import parse, resolve_target, split_targets  # noqa: E402
 
 # (spoken text, expected intent, expected params subset)
 CASES = [

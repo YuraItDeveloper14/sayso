@@ -495,7 +495,7 @@ function connectorRow(connector) {
     const res = await fetch(`/api/connectors/${connector.name}/test`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: "Test note from StaySo" }),
+      body: JSON.stringify({ text: "Test note from SaySo" }),
     });
     const data = await res.json();
     tools.textContent = data.ok ? `Delivered: ${data.detail}` : `Failed: ${data.detail}`;
@@ -606,8 +606,8 @@ function connect() {
         resultEl.classList.toggle("bad", !event.ok);
         break;
       case "log":
-        if (event.level === "error") console.error("[stayso]", event.message);
-        else console.info("[stayso]", event.message);
+        if (event.level === "error") console.error("[sayso]", event.message);
+        else console.info("[sayso]", event.message);
         break;
     }
   };

@@ -38,7 +38,7 @@ class TimerScheduler:
         self._on_fire = None
         self._next_id = 1
         self._load()
-        self._thread = threading.Thread(target=self._run, daemon=True, name="stayso-timers")
+        self._thread = threading.Thread(target=self._run, daemon=True, name="sayso-timers")
         self._thread.start()
 
     # -------------------------------------------------------------- storage

@@ -36,7 +36,7 @@ class WebhookConnector(Connector):
 
         import requests
 
-        payload = {"text": text, "source": "stayso", "at": time.time()}
+        payload = {"text": text, "source": "sayso", "at": time.time()}
         payload.update(self.config.get("extra_fields") or {})
 
         try:

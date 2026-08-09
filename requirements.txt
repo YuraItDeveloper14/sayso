@@ -9,12 +9,12 @@ numpy==1.26.4
 pynput==1.7.7
 pyttsx3==2.90
 
-# Optional: only needed for MCP connectors (Notion and friends). StaySo runs
+# Optional: only needed for MCP connectors (Notion and friends). SaySo runs
 # fine without it - the local file and webhook connectors do not use it.
 mcp>=1.2.0
 
 # Optional: a neural voice that runs offline on the CPU and sounds far better
-# than the built-in Windows one. Without it StaySo falls back to SAPI5.
+# than the built-in Windows one. Without it SaySo falls back to SAPI5.
 # Fetch a voice once with:
 #   python -m piper.download_voices en_US-lessac-medium --download-dir models/piper
 piper-tts>=1.6.0

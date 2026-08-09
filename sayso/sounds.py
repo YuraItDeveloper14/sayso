@@ -1,4 +1,4 @@
-﻿"""The noises StaySo makes.
+﻿"""The noises SaySo makes.
 
 Two jobs. The push-to-talk clicks tell you it is listening when the dashboard
 is not on screen, which is most of the time - the app runs in the background.
@@ -97,7 +97,7 @@ class Sounds:
 
     def _play_async(self, samples):
         threading.Thread(
-            target=self._write, args=(samples,), daemon=True, name="stayso-click"
+            target=self._write, args=(samples,), daemon=True, name="sayso-click"
         ).start()
 
     def click_on(self):
@@ -116,7 +116,7 @@ class Sounds:
             self._ringing = True
             self.alarm_label = label
             self._alarm_thread = threading.Thread(
-                target=self._ring, daemon=True, name="stayso-alarm"
+                target=self._ring, daemon=True, name="sayso-alarm"
             )
             self._alarm_thread.start()
 

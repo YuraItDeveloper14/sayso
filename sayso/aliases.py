@@ -1,4 +1,4 @@
-﻿"""Phrases you teach StaySo.
+﻿"""Phrases you teach SaySo.
 
 "When I say my class, open <url>" writes an entry here, and from then on
 "open my class" resolves through this store before the built-in site list. It is
