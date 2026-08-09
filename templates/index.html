@@ -12,7 +12,7 @@
 <!-- Status rail: the strip across the top of a rack unit. -->
 <header class="rail">
   <div class="rail-brand">
-    <img class="rail-mark" src="{{ url_for('static', filename='logo.svg') }}" alt="" width="26" height="26">
+    <img class="rail-mark" src="{{ url_for('static', filename='logo.svg') }}" alt="" width="52" height="52">
     <span class="rail-name">Sayso</span>
   </div>
   <dl class="rail-readouts">
@@ -20,16 +20,11 @@
     <div class="readout"><dt>Speech</dt><dd id="rail-engine">starting</dd></div>
     <div class="readout"><dt>Links</dt><dd id="rail-links">none</dd></div>
     <div class="readout"><dt>Browser</dt><dd id="rail-extension">no extension</dd></div>
+    <div class="readout"><dt>Voice</dt><dd id="rail-voice">…</dd></div>
+    <div class="readout"><dt>Fallback</dt><dd id="rail-llm">off</dd></div>
   </dl>
   <p class="rail-ptt">Hold <kbd>{{ hotkey }}</kbd> to talk</p>
 </header>
-
-<!-- Only on screen while a reminder is actually ringing. -->
-<div class="alarm-bar" id="alarm-bar" hidden>
-  <span class="alarm-lamp" aria-hidden="true"></span>
-  <span class="alarm-text">Reminder: <strong id="alarm-label"></strong></span>
-  <button type="button" id="alarm-stop">Stop</button>
-</div>
 
 <!-- Hero: the talkback strip. Tally lamp, meter, and what you just said. -->
 <section class="desk">
@@ -103,7 +98,11 @@
   <section class="panel panel-timers">
     <div class="panel-head">
       <h2 class="panel-label">Timers</h2>
-      <button class="ghost" id="clear-timers">Clear</button>
+      <span class="head-actions">
+        <!-- Only appears while something is actually ringing. -->
+        <button class="ghost ghost-alert" id="alarm-stop" hidden>Silence <span id="alarm-label"></span></button>
+        <button class="ghost" id="clear-timers">Clear</button>
+      </span>
     </div>
     <ul class="timers" id="timers">
       <li class="empty">Say “remind me in 20 minutes to stretch”.</li>

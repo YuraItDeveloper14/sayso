@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sayso.intents import parse, resolve_target  # noqa: E402
+from sayso.intents import parse, resolve_target, split_targets  # noqa: E402
 
 # (spoken text, expected intent, expected params subset)
 CASES = [
@@ -114,9 +114,24 @@ CASES = [
     ("open youtube", "open_site", {"target": "youtube"}),
     ("open downloads", "open_site", {"target": "downloads"}),
 
-    # -- nonsense should stay inert ---------------------------------------
-    ("", "unknown", {}),
-    ("uh yeah so anyway", "unknown", {}),
+    # -- misheard noise is not the same as an unknown command --------------
+    ("", "noise", {}),
+    ("Ah, luringy, luringy, luringy, luringy, luringy", "noise", {}),
+    ("you", "noise", {}),
+    ("Thanks for watching!", "noise", {}),
+    ("hmm", "noise", {}),
+    ("na na na na", "noise", {}),
+
+    # -- but a real sentence we have no rule for is "unknown" --------------
+    ("paint the fence green tomorrow", "unknown", {}),
+]
+
+# Multi-step shortcuts: one phrase, several destinations.
+SPLIT_CASES = [
+    ("notion and github", ["notion", "github"]),
+    ("notion, github, gmail", ["notion", "github", "gmail"]),
+    ("vs code and then downloads", ["vs code", "downloads"]),
+    ("youtube", ["youtube"]),
 ]
 
 RESOLVE_CASES = [
@@ -156,7 +171,14 @@ def run():
                 f'  resolve_target("{target}")\n      expected {expected_url!r}, got {url!r}'
             )
 
-    total = len(CASES) + len(RESOLVE_CASES)
+    for target, expected_parts in SPLIT_CASES:
+        parts = split_targets(target)
+        if parts != expected_parts:
+            failures.append(
+                f'  split_targets("{target}")\n      expected {expected_parts!r}, got {parts!r}'
+            )
+
+    total = len(CASES) + len(RESOLVE_CASES) + len(SPLIT_CASES)
     if failures:
         print(f"FAILED  {len(failures)} of {total} checks\n")
         print("\n".join(failures))

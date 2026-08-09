@@ -111,6 +111,54 @@ class Intent:
         return self.name != "unknown"
 
 
+# Whisper does not return "I heard nothing" - it returns its best guess at what
+# a cough or a scrape of the desk might have been. These are the shapes that
+# guess takes, and echoing them back as a failed command makes Sayso look
+# broken when the truth is that nothing was said.
+HALLUCINATIONS = {
+    "you", "thank you", "thanks", "thanks for watching", "bye", "okay",
+    "thank you for watching", "please subscribe", "the end", "hmm", "uh",
+    "so", "yeah", "mm", "mhm", "oh",
+}
+
+
+def looks_like_noise(text):
+    """True when the transcript is a misheard noise rather than speech."""
+    cleaned = re.sub(r"[^\w\s']", "", text.lower()).strip()
+    if not cleaned:
+        return True
+    if cleaned in HALLUCINATIONS:
+        return True
+
+    words = cleaned.split()
+    letters = re.sub(r"[^a-z]", "", cleaned)
+    if len(letters) < 2:
+        return True
+
+    # A stutter loop - "luringy, luringy, luringy" - is the model latching onto
+    # a sound and repeating it. Real commands do not stammer.
+    if len(words) >= 3:
+        longest_run = run = 1
+        for previous, current in zip(words, words[1:]):
+            run = run + 1 if current == previous else 1
+            longest_run = max(longest_run, run)
+        if longest_run >= 3:
+            return True
+        if len(set(words)) == 1:
+            return True
+        # Three or more repeats of any single word in a short utterance.
+        if len(words) <= 12 and max(words.count(w) for w in set(words)) >= 3:
+            return True
+
+    return False
+
+
+def split_targets(target):
+    """"notion and github" -> ["notion", "github"], for multi-step shortcuts."""
+    parts = re.split(r"\s*(?:,|\band then\b|\band\b|\bplus\b)\s*", target, flags=re.IGNORECASE)
+    return [p.strip() for p in parts if p.strip()]
+
+
 def normalize(text):
     """Lowercase, de-punctuate, and repair common mis-hearings."""
     cleaned = text.strip().lower()
@@ -412,7 +460,13 @@ def parse(text):
     """Parse raw transcribed speech into an Intent."""
     normalized = normalize(text)
     if not normalized:
-        return Intent("unknown", {"reason": "empty"}, raw=text, normalized=normalized)
+        return Intent("noise", {"reason": "empty"}, raw=text, normalized=normalized)
+
+    # Separated from "unknown" on purpose. "I did not catch that" and "that is
+    # not a command I know" are different messages, and only the second one is
+    # worth showing the user what was heard.
+    if looks_like_noise(normalized):
+        return Intent("noise", {"reason": "noise"}, raw=text, normalized=normalized)
 
     for name, pattern, builder in RULES:
         match = pattern.match(normalized)

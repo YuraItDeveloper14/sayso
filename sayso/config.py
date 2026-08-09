@@ -27,6 +27,9 @@ DEFAULTS = {
     "hotkey_modifiers": ["ctrl", "alt"],
     "hotkey_key": "s",
     "speak_replies": True,
+    # "auto" uses the Piper neural voice when its model is in models/piper,
+    # and falls back to the Windows SAPI5 robot. "sapi" forces the fallback.
+    "voice_engine": "auto",
     # Short blips on key down and key up. The app runs in the background, so
     # without them you have no confirmation it is listening.
     "click_sounds": True,
@@ -35,6 +38,12 @@ DEFAULTS = {
     # Pause between opening Google and opening the destination, so the
     # "through Google" route is actually visible on screen.
     "google_hop_delay": 1.2,
+    # When the offline grammar does not recognise a command, optionally ask a
+    # model to map it to one of the commands that already exist. Needs a key in
+    # data/keys.json or the OPENROUTER_API_KEY environment variable, and needs
+    # the network. Off without one.
+    "use_llm_fallback": True,
+    "llm_model": "openai/gpt-4o-mini",
     "web_port": 5000,
     "open_browser_on_start": True,
 }

@@ -15,6 +15,7 @@ from .config import settings
 from .events import bus
 from .history import history
 from .hotkey import PushToTalk
+from .llm import interpreter
 from .sounds import sounds
 from .stt import transcriber
 from .timers import scheduler
@@ -154,9 +155,22 @@ class SaysoDaemon:
             bus.publish("alarm_changed")
 
         intent = intents.parse(text)
+
+        # Only when the offline grammar gave up, and never for noise - there is
+        # nothing in a cough for a model to understand either.
+        via_llm = False
+        if intent.name == "unknown" and interpreter.available:
+            bus.set_status(events.EXECUTING, "asking the model")
+            guess = interpreter.interpret(text)
+            if guess is not None:
+                intent = intents.Intent(guess[0], guess[1], raw=text, normalized=intent.normalized)
+                via_llm = True
+
         # So a note remembers whether it was spoken or typed.
         intent.params.setdefault("source", source)
         result = actions.execute(intent)
+        if via_llm and result.ok:
+            result.display = f"{result.display}  ·  understood by model"
 
         entry = history.add(
             transcript=text,

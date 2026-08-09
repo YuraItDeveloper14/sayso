@@ -18,7 +18,7 @@ from .config import settings
 from .connectors import registry
 from .events import bus
 from .extension import bridge
-from .intents import SEARCH_ENGINES, _search_url, resolve_target
+from .intents import SEARCH_ENGINES, _search_url, resolve_target, split_targets
 from .notes import store
 from .sounds import sounds
 from .timers import humanize, scheduler
@@ -80,14 +80,42 @@ def _spoken_list(notes):
 # ------------------------------------------------------------------ opening
 
 
+def _open_one(target):
+    """Open one destination, local or web. Returns (label, url or None)."""
+    kind, label, path = launcher.resolve(target)
+    if path is not None:
+        launcher.launch(path)
+        return label, None
+
+    label, url = resolve_target(target, _following_alias=True)
+    if not url:
+        label, url = _search_url("google", target)
+    _open(url)
+    return label, url
+
+
 def open_site(target):
     # A phrase you taught outranks everything, including an installed app of
-    # the same name - you said explicitly what you meant by it.
-    if alias_store.lookup(target) is None:
-        kind, label, path = launcher.resolve(target)
-        if path is not None:
-            launcher.launch(path)
-            return Result(True, f"Opened {label} ({kind})", f"Opening {label}")
+    # the same name - you said explicitly what you meant by it. It can also
+    # name several things at once: "when I say let's work, open notion and
+    # github" is one phrase and two windows.
+    taught = alias_store.lookup(target)
+    if taught is not None:
+        labels, urls = [], []
+        for part in split_targets(taught):
+            label, url = _open_one(part)
+            labels.append(label)
+            if url:
+                urls.append(url)
+            if len(labels) < len(split_targets(taught)):
+                time.sleep(0.25)  # let the browser settle between tabs
+        joined = ", ".join(labels)
+        return Result(True, f"Opened {joined}", f"Opening {joined}", urls)
+
+    kind, label, path = launcher.resolve(target)
+    if path is not None:
+        launcher.launch(path)
+        return Result(True, f"Opened {label} ({kind})", f"Opening {label}")
 
     label, url = resolve_target(target)
     if not url:
@@ -97,6 +125,11 @@ def open_site(target):
         return Result(True, f'Searched Google for "{target}"', f"Searching for {target}", [url])
     _open(url)
     return Result(True, f"Opened {label}", f"Opening {label}", [url])
+
+
+def noise():
+    """Something was heard, but it was not speech."""
+    return Result(False, "Did not catch that — try again", "")
 
 
 def open_via_google(target):
@@ -324,6 +357,7 @@ HANDLERS = {
     "list_aliases": lambda p: list_aliases(),
     "undo": lambda p: undo(),
     "browser": lambda p: browser_action(p["action"]),
+    "noise": lambda p: noise(),
 }
 
 

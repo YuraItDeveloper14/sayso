@@ -20,9 +20,11 @@ from .daemon import daemon
 from .events import bus
 from .extension import bridge
 from .history import history
+from .llm import interpreter
 from .notes import store
 from .sounds import sounds
 from .timers import scheduler
+from .tts import speaker
 from .undo import stack
 
 app = Flask(
@@ -62,11 +64,13 @@ def _state():
         "extension": bridge.describe(),
         "alarm": {"ringing": sounds.alarm_ringing, "label": sounds.alarm_label},
         "undo": stack.last,
+        "llm": interpreter.describe(),
         "settings": {
             "hotkey": settings.hotkey_label,
             "model": settings.model_size,
             "language": settings.language,
             "speak_replies": settings.speak_replies,
+            "voice": speaker.engine,
         },
         "version": __version__,
     }

@@ -54,6 +54,7 @@ const INTENT_LABELS = {
   undo: "undone",
   browser: "browser",
   unknown: "not understood",
+  noise: "not speech",
 };
 
 /* Which panel each stream event invalidates. */
@@ -245,20 +246,20 @@ function renderTimers(timers) {
 let alarmWatch = null;
 
 function renderAlarm(alarm) {
-  const bar = el("alarm-bar");
-  bar.hidden = !alarm.ringing;
-  el("alarm-label").textContent = alarm.label || "timer";
+  const button = el("alarm-stop");
+  button.hidden = !alarm.ringing;
+  el("alarm-label").textContent = alarm.label ? `“${alarm.label}”` : "";
 
-  // The banner is shown optimistically the moment a timer fires, so a missed
-  // "stopped" event used to leave it on screen for good. While it is up, keep
-  // asking the daemon whether anything is actually still ringing.
+  // Shown optimistically the moment a timer fires, so a missed "stopped" event
+  // used to leave it on screen for good. While it is up, keep asking the daemon
+  // whether anything is actually still ringing.
   if (alarm.ringing && alarmWatch === null) {
     alarmWatch = setInterval(async () => {
       const state = await loadState().catch(() => null);
       if (!state || !state.alarm.ringing) {
         clearInterval(alarmWatch);
         alarmWatch = null;
-        bar.hidden = true;
+        button.hidden = true;
       }
     }, 4000);
   } else if (!alarm.ringing && alarmWatch !== null) {
@@ -271,6 +272,15 @@ function renderExtension(extension) {
   el("rail-extension").textContent = extension.connected
     ? `${extension.browser || "connected"}`
     : "no extension";
+}
+
+function renderEngines(state) {
+  el("rail-voice").textContent = state.settings.voice || "…";
+  el("rail-llm").textContent = state.llm.available
+    ? state.llm.model.split("/").pop()
+    : state.llm.has_key
+      ? "off"
+      : "no key";
 }
 
 // One ticker for every countdown, rather than one per row.
@@ -499,6 +509,7 @@ async function renderAll() {
   renderConnectors(state.connectors);
   renderAlarm(state.alarm);
   renderExtension(state.extension);
+  renderEngines(state);
 }
 
 async function renderNotesFromState() {
