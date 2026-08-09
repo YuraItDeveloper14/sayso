@@ -1,0 +1,18 @@
+# The site is index.html plus static/. Everything else in this repository is
+# the application itself, and Vercel has no business serving or building it —
+# without this it sees requirements.txt and tries to build a Python project.
+
+sayso/
+extension/
+tests/
+tools/
+templates/
+models/
+data/
+dist/
+build/
+.venv/
+.claude/
+run.py
+requirements.txt
+*.spec
