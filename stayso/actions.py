@@ -1,4 +1,4 @@
-"""Execute a parsed Intent: drive the browser, edit notes, talk back.
+﻿"""Execute a parsed Intent: drive the browser, edit notes, talk back.
 
 Anything that changes stored state also registers how to reverse itself, so
 "undo that" can take back a misheard command. Anything that leaves the machine -
@@ -182,7 +182,7 @@ def _mirror_to_connectors(texts):
             for name, ok, detail in registry.deliver_note(text):
                 bus.publish("connector", connector=name, ok=ok, detail=detail, text=text)
 
-    threading.Thread(target=deliver, daemon=True, name="sayso-connectors").start()
+    threading.Thread(target=deliver, daemon=True, name="stayso-connectors").start()
 
 
 def write_note(text, source="voice"):

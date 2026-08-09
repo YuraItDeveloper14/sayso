@@ -1,8 +1,8 @@
-{
+﻿{
   "manifest_version": 3,
-  "name": "Sayso",
+  "name": "StaySo",
   "version": "1.0.0",
-  "description": "Voice control for your browser tabs. Talks to the Sayso daemon running on this machine.",
+  "description": "Voice control for your browser tabs. Talks to the StaySo daemon running on this machine.",
   "permissions": ["tabs", "sessions", "scripting", "alarms", "storage"],
   "host_permissions": ["http://127.0.0.1:5000/*", "<all_urls>"],
   "background": {
@@ -10,7 +10,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Sayso",
+    "default_title": "StaySo",
     "default_icon": "icons/icon128.png"
   },
   "icons": {

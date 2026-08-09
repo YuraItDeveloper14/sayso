@@ -1,4 +1,4 @@
-"""POST each note to a URL.
+﻿"""POST each note to a URL.
 
 The escape hatch: anything with an inbound webhook - Zapier, Make, n8n, IFTTT,
 a Discord channel, your own server - accepts notes without needing a dedicated
@@ -36,7 +36,7 @@ class WebhookConnector(Connector):
 
         import requests
 
-        payload = {"text": text, "source": "sayso", "at": time.time()}
+        payload = {"text": text, "source": "stayso", "at": time.time()}
         payload.update(self.config.get("extra_fields") or {})
 
         try:

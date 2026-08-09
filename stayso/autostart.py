@@ -1,4 +1,4 @@
-"""Start Sayso when Windows starts.
+﻿"""Start StaySo when Windows starts.
 
 A background app you have to launch by hand every morning is only half a
 background app. This writes a shortcut into the user's own Startup folder -
@@ -18,7 +18,7 @@ STARTUP_DIR = (
     Path(os.environ.get("APPDATA", Path.home()))
     / "Microsoft/Windows/Start Menu/Programs/Startup"
 )
-SHORTCUT = STARTUP_DIR / "Sayso.lnk"
+SHORTCUT = STARTUP_DIR / "StaySo.lnk"
 
 
 def _pythonw():
@@ -46,7 +46,7 @@ def install():
         link.Targetpath = str(_pythonw())
         link.Arguments = f'"{ROOT / "run.py"}" --no-browser'
         link.WorkingDirectory = str(ROOT)
-        link.Description = "Sayso - offline voice control"
+        link.Description = "StaySo - offline voice control"
         link.IconLocation = str(ROOT / "extension" / "icons" / "icon128.png")
         link.save()
     except Exception as exc:

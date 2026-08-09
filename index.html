@@ -3,43 +3,46 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sayso — hold a key, say what you want</title>
+<title>StaySo — hold a key, say what you want</title>
 <meta name="description" content="Offline push-to-talk voice control for your laptop. A background daemon, a live web console, and a browser extension.">
 <link rel="stylesheet" href="static/style.css">
 <link rel="icon" href="static/logo.svg">
 <style>
-  /* Page-level layout only. Every colour and typeface is inherited from the
-     console's own stylesheet, so the site cannot drift away from the product. */
+  /* Page layout only. Every colour and typeface comes from the console's own
+     stylesheet, so the site cannot drift away from the product. */
   .page { max-width: 940px; margin: 0 auto; padding: 0 22px 72px; }
 
-  .hero { padding: 64px 0 44px; text-align: center; }
-  .hero img { width: 108px; height: 108px; }
+  .hero { padding: 62px 0 42px; text-align: center; }
+  .hero img { width: 104px; height: 104px; }
   .hero h1 {
-    font-family: var(--face); font-size: 62px; font-weight: 700;
-    letter-spacing: 0.03em; margin: 14px 0 6px; line-height: 1;
+    font-family: var(--mark); font-size: 64px; font-weight: 600;
+    letter-spacing: 0.005em; margin: 12px 0 8px; line-height: 1;
   }
-  .hero .tagline { font-size: 22px; color: var(--cream); margin: 0 0 10px; }
-  .hero .sub { font-size: 15px; color: var(--sand); margin: 0 auto; max-width: 560px; line-height: 1.6; }
+  .hero .tagline { font-size: 22px; color: var(--cream); margin: 0 0 12px; }
+  .hero .sub { font-size: 15px; color: var(--sand); margin: 0 auto; max-width: 570px; line-height: 1.6; }
 
   .cta { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 26px; }
   .cta a {
     font-family: var(--face); font-size: 13px; letter-spacing: 0.12em;
     text-transform: uppercase; padding: 11px 22px; border-radius: 3px;
     text-decoration: none; border: 1px solid var(--rail); color: var(--cream);
+    transition: border-color 160ms ease, background 160ms ease;
   }
   .cta a.primary { background: var(--amber); border-color: var(--amber); color: #1d1409; font-weight: 600; }
   .cta a:hover { border-color: var(--amber); }
+  .cta a.primary:hover { filter: brightness(1.08); }
 
   section.block { padding: 34px 0; border-top: 1px solid var(--rail); }
   section.block h2 {
     font-family: var(--face); font-size: 13px; font-weight: 600;
     letter-spacing: 0.2em; text-transform: uppercase; color: var(--sand);
-    margin: 0 0 20px;
+    margin: 0 0 8px;
   }
+  section.block .lead { margin: 0 0 20px; font-size: 13.5px; color: var(--dim); }
 
   .faces { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
   .face { background: var(--panel); border: 1px solid var(--rail); border-radius: 3px; padding: 18px; }
-  .face h3 { font-family: var(--face); font-size: 17px; margin: 0 0 6px; letter-spacing: 0.03em; }
+  .face h3 { font-family: var(--mark); font-size: 18px; margin: 0 0 6px; font-weight: 600; }
   .face p { margin: 0; font-size: 13.5px; color: var(--sand); line-height: 1.55; }
   .face .tag {
     display: inline-block; font-family: var(--face); font-size: 9.5px;
@@ -59,6 +62,42 @@
   table.commands td:first-child { font-family: var(--data); color: var(--cream); white-space: nowrap; }
   table.commands td:last-child { color: var(--sand); }
 
+  /* Download cards. They light up on hover so it is obvious the whole tile is
+     the target, not just the words on it. */
+  .gets { display: grid; grid-template-columns: repeat(auto-fit, minmax(258px, 1fr)); gap: 14px; }
+
+  .get {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--panel); border: 1px solid var(--rail); border-radius: 3px;
+    padding: 20px; position: relative;
+    transition: border-color 180ms ease, background 180ms ease,
+                box-shadow 180ms ease, transform 180ms ease;
+  }
+  .get:hover, .get:focus-visible {
+    border-color: var(--amber);
+    background: var(--panel-hi);
+    box-shadow: 0 0 0 1px rgba(240,168,48,0.25), 0 10px 30px rgba(0,0,0,0.45);
+    transform: translateY(-2px);
+  }
+  .get .lamp {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: #2b2118; border: 2px solid var(--rail);
+    display: block; margin-bottom: 12px;
+    transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  }
+  .get:hover .lamp, .get:focus-visible .lamp {
+    background: var(--amber); border-color: var(--amber);
+    box-shadow: 0 0 12px rgba(240,168,48,0.75);
+  }
+  .get h3 { font-family: var(--mark); font-size: 19px; font-weight: 600; margin: 0 0 4px; }
+  .get p { margin: 0 0 14px; font-size: 13px; color: var(--sand); line-height: 1.5; }
+  .get .action {
+    font-family: var(--face); font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--amber);
+  }
+  .get .action::after { content: " →"; }
+  .get .meta { display: block; margin-top: 8px; font-size: 11px; color: var(--dim); }
+
   pre.install {
     background: var(--panel); border: 1px solid var(--rail); border-radius: 3px;
     padding: 16px; overflow-x: auto; font-family: var(--data); font-size: 12.5px;
@@ -75,22 +114,23 @@
 
   <header class="hero">
     <img src="static/logo.svg" alt="">
-    <h1>Sayso</h1>
+    <h1>StaySo</h1>
     <p class="tagline">Hold a key. Say what you want. It happens.</p>
     <p class="sub">
       Opening YouTube costs four steps: reach for the mouse, find the window,
-      click the address bar, type. The intent takes half a second to say. Sayso
+      click the address bar, type. The intent takes half a second to say. StaySo
       removes everything in between — and it does it without sending your voice
       anywhere.
     </p>
     <div class="cta">
-      <a class="primary" href="https://github.com/YuraItDeveloper14/sayso">Code on GitHub</a>
-      <a href="https://github.com/YuraItDeveloper14/sayso#running-it">Run it yourself</a>
+      <a class="primary" href="#get">Get StaySo</a>
+      <a href="https://github.com/YuraItDeveloper14/stayso">Show the code</a>
     </div>
   </header>
 
   <section class="block">
     <h2>One system, three faces</h2>
+    <p class="lead">The same daemon drives all three. The console and the extension are views onto it — close either and every voice command still works.</p>
     <div class="faces">
       <div class="face">
         <span class="tag">Desktop</span>
@@ -114,10 +154,6 @@
            while you are holding the key.</p>
       </div>
     </div>
-    <p class="note">
-      The same daemon drives all three. The console and the extension are views
-      onto it — kill either and every voice command still works.
-    </p>
   </section>
 
   <section class="block">
@@ -132,7 +168,7 @@
     <p class="note">
       Recognition, parsing and the spoken replies all run locally. Unplug the
       network and every one of them keeps working. The only parts that reach out
-      are the optional connectors, and the dashboard labels each one before you
+      are the optional connectors, and the console labels each one before you
       turn it on.
     </p>
   </section>
@@ -151,22 +187,54 @@
     </table>
   </section>
 
-  <section class="block">
-    <h2>Run it</h2>
-    <pre class="install">git clone https://github.com/YuraItDeveloper14/sayso
-cd sayso
+  <section class="block" id="get">
+    <h2>Get StaySo</h2>
+    <p class="lead">Start with the app — the extension and the console both need it running.</p>
+    <div class="gets">
+
+      <a class="get" href="https://github.com/YuraItDeveloper14/stayso/archive/refs/heads/main.zip">
+        <span class="lamp" aria-hidden="true"></span>
+        <h3>The app</h3>
+        <p>The daemon and the console together. Windows, Python 3.12. Start here —
+           nothing else works without it.</p>
+        <span class="action">Download</span>
+        <span class="meta">ZIP · then follow the README</span>
+      </a>
+
+      <a class="get" href="https://github.com/YuraItDeveloper14/stayso/releases/download/v1.0.0/stayso-extension.zip">
+        <span class="lamp" aria-hidden="true"></span>
+        <h3>The extension</h3>
+        <p>Voice control for your tabs in Chrome and Edge. Unzip, open
+           chrome://extensions, turn on Developer mode, Load unpacked.</p>
+        <span class="action">Download</span>
+        <span class="meta">ZIP · 10 KB</span>
+      </a>
+
+      <a class="get" href="http://127.0.0.1:5000">
+        <span class="lamp" aria-hidden="true"></span>
+        <h3>The console</h3>
+        <p>The live dashboard. It is served by the app on your own machine, so
+           this link opens once StaySo is running.</p>
+        <span class="action">Open</span>
+        <span class="meta">127.0.0.1:5000 · local only</span>
+      </a>
+
+    </div>
+
+    <pre class="install">git clone https://github.com/YuraItDeveloper14/stayso
+cd stayso
 py -3.12 -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
 .venv\Scripts\python run.py</pre>
     <p class="note">
-      The console opens at <code>127.0.0.1:5000</code>. The first run downloads
-      the speech model once, about 75 MB; after that you can turn the Wi-Fi off
-      entirely. There is nothing to sign up for.
+      The first run downloads the speech model once, about 75 MB; after that you
+      can turn the Wi-Fi off entirely. There is nothing to sign up for. To have
+      it start with Windows: <code>python run.py --install-autostart</code>.
     </p>
   </section>
 
   <footer class="site-foot">
-    Built for Iris Hacks 2026 · <a href="https://github.com/YuraItDeveloper14/sayso">source</a>
+    Built for Iris Hacks 2026 · <a href="https://github.com/YuraItDeveloper14/stayso">source</a>
   </footer>
 
 </div>

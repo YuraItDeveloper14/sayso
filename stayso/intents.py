@@ -70,7 +70,7 @@ SPOKEN_FIXES = [
 
 # Wake words and filler Whisper faithfully transcribes but we do not want.
 LEADING_NOISE = re.compile(
-    r"^(?:(?:hey|ok|okay|yo)\s+)?(?:sayso|computer)?[,\s]*(?:um+|uh+|er+|so|please)?[,\s]*",
+    r"^(?:(?:hey|ok|okay|yo)\s+)?(?:stayso|computer)?[,\s]*(?:um+|uh+|er+|so|please)?[,\s]*",
     re.IGNORECASE,
 )
 
@@ -113,7 +113,7 @@ class Intent:
 
 # Whisper does not return "I heard nothing" - it returns its best guess at what
 # a cough or a scrape of the desk might have been. These are the shapes that
-# guess takes, and echoing them back as a failed command makes Sayso look
+# guess takes, and echoing them back as a failed command makes StaySo look
 # broken when the truth is that nothing was said.
 HALLUCINATIONS = {
     "you", "thank you", "thanks", "thanks for watching", "bye", "ok", "okay",

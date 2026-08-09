@@ -1,4 +1,4 @@
-﻿"""Start Sayso: the push-to-talk daemon plus the dashboard.
+﻿"""Start StaySo: the push-to-talk daemon plus the dashboard.
 
     python run.py                    start it
     python run.py --no-browser       start without opening the dashboard
@@ -10,17 +10,17 @@ import sys
 import threading
 import webbrowser
 
-from sayso import autostart
-from sayso.config import settings
-from sayso.daemon import daemon
-from sayso.web import app
+from stayso import autostart
+from stayso.config import settings
+from stayso.daemon import daemon
+from stayso.web import app
 
 BANNER = r"""
-   ___
-  / __| __ _ _  _ ___ ___
-  \__ \/ _` | || (_-</ _ \    offline voice control
-  |___/\__,_|\_, /__/\___/
-             |__/
+   ___ _              ___
+  / __| |_ __ _ _  _ / __| ___
+  \__ \  _/ _` | || |\__ \/ _ \   offline voice control
+  |___/\__\__,_|\_, |___/ \___/
+                |__/
 """
 
 
@@ -64,7 +64,7 @@ def main():
         pass
     finally:
         daemon.hotkey.stop()
-        print("\n  Sayso stopped.")
+        print("\n  StaySo stopped.")
 
 
 if __name__ == "__main__":

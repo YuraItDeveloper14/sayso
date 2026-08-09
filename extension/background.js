@@ -1,4 +1,4 @@
-/* Sayso browser extension — the half of the product that lives in the browser.
+﻿/* StaySo browser extension — the half of the product that lives in the browser.
 
    The daemon on this machine owns the microphone, the hotkey and the speech
    model. It cannot close a tab or scroll a page; nothing outside the browser
@@ -92,7 +92,7 @@ async function run(action) {
   try {
     await handler();
   } catch (error) {
-    console.warn("[sayso] action failed", action, error);
+    console.warn("[stayso] action failed", action, error);
   }
 }
 
@@ -139,7 +139,7 @@ async function tick() {
 
 /* The daemon's SSE keepalive arrives every 15 s, which keeps this worker from
    going idle. The alarm is the backstop for when Chrome shuts it down anyway. */
-chrome.alarms.create("sayso-keepalive", { periodInMinutes: 1 });
+chrome.alarms.create("stayso-keepalive", { periodInMinutes: 1 });
 chrome.alarms.onAlarm.addListener(tick);
 chrome.runtime.onStartup.addListener(tick);
 chrome.runtime.onInstalled.addListener(tick);

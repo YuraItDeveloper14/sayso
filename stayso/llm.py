@@ -1,4 +1,4 @@
-"""Optional fallback: when the grammar does not recognise a command, ask a model.
+﻿"""Optional fallback: when the grammar does not recognise a command, ask a model.
 
 The rule-based parser handles everything it was taught and answers in under a
 millisecond offline. This is for the rest - "let's get to work", "I'm done for
@@ -111,7 +111,7 @@ class Interpreter:
                 headers={
                     "Authorization": f"Bearer {key}",
                     "Content-Type": "application/json",
-                    "X-Title": "Sayso",
+                    "X-Title": "StaySo",
                 },
                 json={
                     "model": settings.llm_model,

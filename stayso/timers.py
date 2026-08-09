@@ -1,4 +1,4 @@
-"""Timers and reminders.
+﻿"""Timers and reminders.
 
 One background thread sleeps until the nearest deadline instead of polling, so
 an idle timer costs nothing. Timers are written to disk, so closing the app and
@@ -38,7 +38,7 @@ class TimerScheduler:
         self._on_fire = None
         self._next_id = 1
         self._load()
-        self._thread = threading.Thread(target=self._run, daemon=True, name="sayso-timers")
+        self._thread = threading.Thread(target=self._run, daemon=True, name="stayso-timers")
         self._thread.start()
 
     # -------------------------------------------------------------- storage

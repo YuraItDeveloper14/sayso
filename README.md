@@ -1,6 +1,6 @@
-<img src="static/logo.svg" width="88" alt="">
+﻿<img src="static/logo.svg" width="88" alt="">
 
-# Sayso
+# StaySo
 
 **Hold a key. Say what you want. It happens.**
 
@@ -21,7 +21,7 @@ whatever you were doing and finding somewhere to put it.
 The interface is the tax. The intent — *"open YouTube"*, *"remember to submit
 before midnight"* — takes half a second to say.
 
-Sayso removes the steps between the thought and the result. Hold `Ctrl+Alt+S`,
+StaySo removes the steps between the thought and the result. Hold `Ctrl+Alt+S`,
 say it, let go. Nothing is typed, no window is switched, no tab is hunted for.
 
 ## Why it is not just a wrapper around a model
@@ -73,7 +73,7 @@ not safe to call concurrently. Flask serves the dashboard on its own threads.
 
 ## Web app today, desktop app whenever it wants to be
 
-Sayso is already both, and that is the point of the layering.
+StaySo is already both, and that is the point of the layering.
 
 The part that matters — the hotkey listener, the microphone, the speech model,
 the parser, the executor — is a **native desktop background process**. It has no
@@ -82,8 +82,8 @@ another app entirely; that is the whole reason it is not a web page with a
 microphone button.
 
 The **web dashboard is a view onto that process**, not the process itself. The
-daemon publishes to an in-memory event bus (`sayso/events.py`); Flask
-(`sayso/web.py`) subscribes to that bus and streams it to the browser. The
+daemon publishes to an in-memory event bus (`stayso/events.py`); Flask
+(`stayso/web.py`) subscribes to that bus and streams it to the browser. The
 daemon has no idea Flask exists.
 
 So turning it into a "normal" desktop app means replacing one file. Point a Tk,
@@ -195,7 +195,7 @@ announced late.
 | `what shortcuts do I have` | reads them back |
 | `forget my class` | unlearns it |
 
-Taught phrases are resolved before the built-in site list, so Sayso speaks your
+Taught phrases are resolved before the built-in site list, so StaySo speaks your
 vocabulary rather than a fixed menu.
 
 **This laptop, not just the browser**
@@ -256,7 +256,7 @@ with the project and nothing is downloaded.
 A browser extension **cannot be this product on its own**, and it is worth being
 precise about why. Chrome gives no global hotkey outside its own window, no
 background microphone without a visible tab, no way to write a file into your
-Obsidian vault, and no way to launch an MCP server. An extension-only Sayso
+Obsidian vault, and no way to launch an MCP server. An extension-only StaySo
 would stop working the moment you switched to a game, a PDF or your editor —
 which is the entire reason it exists.
 
@@ -313,14 +313,14 @@ switch on. Turning on Notion means your notes now travel to Notion's servers;
 that should never be a surprise buried in a README.
 
 **On MCP.** MCP servers are how a growing list of apps expose their actions, and
-each one is a process Sayso launches and speaks to over stdin/stdout. Adding an
-app is a config entry, not a new API client. Sayso is not an LLM, so it does not
+each one is a process StaySo launches and speaks to over stdin/stdout. Adding an
+app is a config entry, not a new API client. StaySo is not an LLM, so it does not
 guess which tool to call: the config names the tool, and `{text}` in any
 argument is replaced with the note. The dashboard can ask a server to list its
 tools so you can see what to map before you map it.
 
 The MCP connectors are built and the SDK round-trip works, but they are the one
-part of Sayso not verified against a live server, because that needs an account
+part of StaySo not verified against a live server, because that needs an account
 and a token this project does not have. The local-file and webhook connectors
 are tested end to end.
 
@@ -344,7 +344,7 @@ what they contain.
 | Frontend | vanilla HTML/CSS/JS | no build step |
 | Storage | JSON on disk | notes, timers and history survive restarts |
 
-**What needs the network, and what does not.** Everything that makes Sayso work
+**What needs the network, and what does not.** Everything that makes StaySo work
 — listening, recognition, parsing, notes, timers, shortcuts, spoken replies —
 runs on this machine and keeps running with the network unplugged. There is no
 account and no API key to start.
@@ -366,7 +366,7 @@ segmented level meter. Connectors live in a patch bay, because that is what they
 are. Indicator colours carry one meaning each — jade is fine, amber is loud or
 needs attention, ember is live or broken — and nothing else uses them.
 
-Every typeface is one that ships with the OS. Sayso has to work with the network
+Every typeface is one that ships with the OS. StaySo has to work with the network
 off, so a font CDN was never an option — and condensed Bahnschrift happens to be
 exactly the face equipment labels are set in.
 
@@ -392,7 +392,7 @@ over spoken test commands:
 
 `small.en` is unusable on this hardware — worth knowing before it wrecks a live
 demo. `tiny.en` is twice as fast as `base.en` with no accuracy cost on short
-commands, so it is the default. `base.en` is one line away in `sayso/config.py`
+commands, so it is the default. `base.en` is one line away in `stayso/config.py`
 if you dictate long notes and want the accuracy more than the speed.
 
 Decoder settings (VAD on/off, timestamps on/off) were also measured, and the
@@ -443,7 +443,7 @@ order became load-bearing, so the timer and shortcut grammars are registered
 ahead of the note grammar, and the test suite pins both readings so a later edit
 cannot silently swap them.
 
-**MCP is async, Sayso is threads.** Starting an MCP server per note would cost
+**MCP is async, StaySo is threads.** Starting an MCP server per note would cost
 seconds of `npx` startup every time. Each connector now owns one background
 event loop and holds a single session open on it, with calls handed over by
 `run_coroutine_threadsafe`.
@@ -469,7 +469,7 @@ be inferred from thread liveness; it is an explicit flag now.
 ## Project structure
 
 ```
-sayso/
+stayso/
   config.py     settings, persisted to data/settings.json
   audio.py      push-to-talk capture and the level meter
   stt.py        faster-whisper wrapper

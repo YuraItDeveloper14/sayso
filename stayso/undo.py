@@ -1,4 +1,4 @@
-"""Taking back the last thing Sayso did.
+﻿"""Taking back the last thing StaySo did.
 
 Speech recognition is never perfect, so the interesting question is not whether
 it mishears you but how fast you can recover when it does. Every action that

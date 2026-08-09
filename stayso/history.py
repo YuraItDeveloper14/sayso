@@ -1,4 +1,4 @@
-﻿"""Rolling log of everything Sayso heard and did, kept for the dashboard."""
+﻿"""Rolling log of everything StaySo heard and did, kept for the dashboard."""
 
 import json
 import threading

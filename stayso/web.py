@@ -1,4 +1,4 @@
-"""Flask dashboard: live view of what Sayso is hearing and doing.
+﻿"""Flask dashboard: live view of what StaySo is hearing and doing.
 
 Also a full text fallback - every voice command can be typed instead, which
 makes the app demoable on a machine with no working microphone.
@@ -288,7 +288,7 @@ def api_test_connector(name):
     connector = registry.get(name)
     if connector is None:
         return jsonify({"error": "unknown connector"}), 404
-    text = (request.json or {}).get("text") or "Test note from Sayso"
+    text = (request.json or {}).get("text") or "Test note from StaySo"
     delivery = connector.send_note(text)
     bus.publish("connectors_changed")
     return jsonify({"ok": delivery.ok, "detail": delivery.detail})

@@ -1,4 +1,4 @@
-"""What every connector has to provide.
+﻿"""What every connector has to provide.
 
 A connector mirrors a note into a real app. It is never load-bearing: the note
 is already saved locally before any connector is asked to do anything, so a
@@ -19,7 +19,7 @@ class Connector:
     #: Shown in the patch bay.
     type_name = "connector"
 
-    #: Whether turning this on means Sayso starts talking to the network.
+    #: Whether turning this on means StaySo starts talking to the network.
     #: Surfaced in the dashboard, because "works offline" stops being true the
     #: moment a hosted connector is switched on and the user deserves to see
     #: exactly which ones cost that.

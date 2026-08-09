@@ -1,7 +1,7 @@
 ﻿"""Offline speech-to-text via faster-whisper.
 
 The model is downloaded once on first run and cached under models/, after which
-Sayso never touches the network again.
+StaySo never touches the network again.
 """
 
 import threading

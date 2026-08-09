@@ -1,11 +1,11 @@
-/* Sayso — talkback console.
+﻿/* StaySo — talkback console.
 
    Push-to-talk is radio, so the interface is broadcast equipment rather than a
    chat window: a warm dark chassis the colour of old studio gear, cream
    lettering, an amber backlight and a red peak lamp. Indicator colours mean
    one thing each — jade is fine, amber is loud, ember is live or broken.
 
-   Every typeface here ships with the OS. Sayso has to work with the network
+   Every typeface here ships with the OS. StaySo has to work with the network
    off, so a font CDN is not an option — and condensed Bahnschrift happens to be
    exactly the face equipment labels are set in. */
 
@@ -21,7 +21,13 @@
   --ember:     #e04a25;
   --jade:      #86a86b;
 
+  /* Panel labels: condensed, the way equipment is silkscreened. */
   --face: "Bahnschrift", "Arial Narrow", "Segoe UI", system-ui, sans-serif;
+  /* The wordmark gets its own face so the brand is not just a big label.
+     Franklin Gothic is wide and warm where Bahnschrift is narrow and technical,
+     which matches the rounded logo — and it ships with Windows, so the offline
+     promise survives. */
+  --mark: "Franklin Gothic Medium", "Segoe UI Semibold", "Trebuchet MS", sans-serif;
   --body: "Segoe UI", system-ui, -apple-system, sans-serif;
   --data: Consolas, "Cascadia Mono", ui-monospace, monospace;
 
@@ -85,14 +91,18 @@ kbd {
 
 .rail-brand { display: flex; align-items: center; gap: 12px; }
 
-.rail-mark { display: block; width: 52px; height: 52px; }
+.rail-mark { display: block; width: 52px; height: 52px; flex: none; }
 
 .rail-name {
-  font-family: var(--face);
-  font-size: 30px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: 1;
+  font-family: var(--mark);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  /* Sized and centred against the logo box rather than against its own line
+     box, so the wordmark sits level with the mark instead of riding low on
+     the font's descender space. */
+  line-height: 52px;
+  display: block;
 }
 
 /* The readouts are an instrument cluster: each one gets its own column with

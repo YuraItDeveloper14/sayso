@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "sayso",
+      "name": "stayso",
       "runtimeExecutable": ".venv/Scripts/python.exe",
       "runtimeArgs": ["run.py", "--no-browser"],
       "port": 5000
