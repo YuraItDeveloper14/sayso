@@ -77,6 +77,27 @@ LEADING_NOISE = re.compile(
 NOTE_WORDS = r"(?:notes?|lists?|tasks?|to-?dos?|reminders?|agenda)"
 ORDINALS = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5}
 
+# Whisper writes most numbers as digits, but not always, and "a minute" is how
+# people actually talk.
+NUMBER_WORDS = {
+    "a": 1, "an": 1, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10, "fifteen": 15,
+    "twenty": 20, "thirty": 30, "forty": 40, "forty five": 45, "sixty": 60,
+    "half a": 0.5, "half an": 0.5, "a couple of": 2, "couple of": 2,
+}
+AMOUNT = r"\d+|half an|half a|a couple of|couple of|forty five|" + "|".join(
+    sorted((w for w in NUMBER_WORDS if " " not in w), key=len, reverse=True)
+)
+UNIT_SECONDS = {"sec": 1, "second": 1, "min": 60, "minute": 60, "hour": 3600}
+UNITS = r"sec|second|min|minute|hour"
+
+
+def parse_duration(amount, unit):
+    """('20', 'minute') -> 1200 seconds."""
+    amount = amount.strip().lower()
+    value = float(amount) if amount.isdigit() else NUMBER_WORDS.get(amount, 1)
+    return int(value * UNIT_SECONDS[unit.strip().lower().rstrip("s")])
+
 
 @dataclass
 class Intent:
@@ -101,15 +122,29 @@ def normalize(text):
     return cleaned.strip()
 
 
-def resolve_target(raw_target):
+def resolve_target(raw_target, _following_alias=False):
     """Map a spoken destination to (label, url).
 
-    Known alias wins; then anything that looks like a domain; then a bare word
-    is optimistically treated as `<word>.com`; anything longer is a search.
+    Phrases you taught win first, then the built-in list, then anything that
+    looks like a URL or a domain; a bare word is optimistically treated as
+    `<word>.com`; anything longer is a search.
     """
     target = raw_target.strip().strip(".,")
     target = re.sub(r"^(?:the|my|a)\s+", "", target)
     target = re.sub(r"\s+(?:website|site|page|app|dot com)$", "", target)
+
+    if target.startswith(("http://", "https://")):
+        label = target.split("//", 1)[1].split("/")[0]
+        return (label, target)
+
+    if not _following_alias:
+        from .aliases import store as alias_store
+
+        taught = alias_store.lookup(target)
+        if taught:
+            label, url = resolve_target(taught, _following_alias=True)
+            return (label or target, url)
+
     target = re.sub(r"^www\.", "", target)
 
     if target in SITES:
@@ -157,6 +192,78 @@ def rule(name, pattern):
         return builder
 
     return decorator
+
+
+# Timers come before notes: "remind me in ten minutes" and "remind me to call
+# mum" start identically, and only the next word tells them apart.
+
+
+@rule("set_timer", rf"^remind me in (?P<amount>{AMOUNT}) (?P<unit>{UNITS})s?,? (?:to |that )?(?P<label>.+)$")
+@rule("set_timer", rf"^in (?P<amount>{AMOUNT}) (?P<unit>{UNITS})s?,? remind me (?:to )?(?P<label>.+)$")
+def _set_timer_labelled(match, text):
+    return Intent(
+        "set_timer",
+        {
+            "seconds": parse_duration(match.group("amount"), match.group("unit")),
+            "label": match.group("label").strip(),
+        },
+    )
+
+
+@rule(
+    "set_timer",
+    rf"^(?:set|start) (?:a |an )?(?:timer|alarm) for (?P<amount>{AMOUNT}) (?P<unit>{UNITS})s?"
+    r"(?:,? (?:to|for|called) (?P<label>.+))?$",
+)
+@rule(
+    "set_timer",
+    rf"^(?:start a )?(?P<amount>{AMOUNT}) (?P<unit>{UNITS})s? timer"
+    r"(?:,? (?:to|for|called) (?P<label>.+))?$",
+)
+def _set_timer(match, text):
+    return Intent(
+        "set_timer",
+        {
+            "seconds": parse_duration(match.group("amount"), match.group("unit")),
+            "label": (match.group("label") or "").strip(),
+        },
+    )
+
+
+@rule("cancel_timers", r"^(?:cancel|stop|clear)\s+(?:all\s+)?(?:my\s+)?(?:the\s+)?timers?$")
+def _cancel_timers(match, text):
+    return Intent("cancel_timers")
+
+
+@rule("list_timers", r"^(?:what|which)\s+timers?\b.*$")
+@rule("list_timers", r"^(?:list|show)\s+(?:me\s+)?(?:my\s+)?timers?$")
+def _list_timers(match, text):
+    return Intent("list_timers")
+
+
+# Teaching a phrase must also outrank note-writing, so that "remember standup as
+# <url>" is a shortcut and not a note about a URL.
+
+
+@rule("teach_alias", r"^when i say (?P<phrase>.+?),? (?:open|go to|launch|that means) (?P<target>.+)$")
+@rule("teach_alias", r"^(?:teach|learn) (?:that )?(?P<phrase>.+?) (?:is|means|opens) (?P<target>.+)$")
+@rule("teach_alias", r"^(?:remember|save) (?P<phrase>.+?) as (?P<target>.+)$")
+def _teach_alias(match, text):
+    return Intent(
+        "teach_alias",
+        {"phrase": match.group("phrase").strip(), "target": match.group("target").strip()},
+    )
+
+
+@rule("forget_alias", r"^forget (?:the )?(?:shortcut )?(?P<phrase>.+)$")
+def _forget_alias(match, text):
+    return Intent("forget_alias", {"phrase": match.group("phrase").strip()})
+
+
+@rule("list_aliases", r"^(?:what|which)\s+(?:shortcuts?|aliases)\b.*$")
+@rule("list_aliases", r"^(?:list|show)\s+(?:me\s+)?(?:my\s+)?(?:shortcuts?|aliases)$")
+def _list_aliases(match, text):
+    return Intent("list_aliases")
 
 
 @rule("read_notes", rf"^(?:read|read out|read back|say|recite)\b.*\b{NOTE_WORDS}\b")

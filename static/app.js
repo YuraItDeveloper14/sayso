@@ -1,39 +1,74 @@
-﻿/* Dashboard client: pulls initial state over REST, then follows the daemon
-   live over Server-Sent Events. */
+/* Console client: fetches state over REST, then follows the daemon live over
+   Server-Sent Events. Everything on screen is a view of the daemon; nothing is
+   decided here. */
 
 const el = (id) => document.getElementById(id);
 
-const orb = el("orb");
-const statusDot = el("status-dot");
-const statusText = el("status-text");
+const tally = el("tally");
+const tallyState = el("tally-state");
+const meter = el("meter");
 const transcriptEl = el("transcript");
 const resultEl = el("result");
 const feedEl = el("feed");
 const notesEl = el("notes");
+const timersEl = el("timers");
+const aliasesEl = el("aliases");
+const connectorsEl = el("connectors");
 const noteCount = el("note-count");
 
-const STATUS_LABEL = {
-  loading: "loading speech model…",
-  idle: "ready",
-  listening: "listening",
-  transcribing: "transcribing",
-  executing: "running command",
-  error: "error",
+const SEGMENTS = 20;
+// Measured against real speech: a normal speaking voice lands around 14-16
+// segments, so the amber and red zones sit above that. The meter should only
+// change colour when you are actually loud.
+const HOT_FROM = 16;
+const PEAK_FROM = 19;
+
+const STATE_WORDS = {
+  loading: "warming up",
+  idle: "standby",
+  listening: "live",
+  transcribing: "decoding",
+  executing: "acting",
+  error: "fault",
 };
 
-/* Notes intents get a green tag; everything else is violet. */
-const NOTE_INTENTS = new Set([
-  "write_note",
-  "read_notes",
-  "complete_note",
-  "delete_note",
-  "clear_notes",
-]);
+/* Which panel each stream event invalidates. */
+const REFRESHERS = {
+  notes_changed: renderNotesFromState,
+  timers_changed: renderTimersFromState,
+  aliases_changed: renderAliasesFromState,
+  connectors_changed: renderConnectorsFromState,
+};
+
+let openJack = null; // which connector row is expanded
+
+/* ---------------------------------------------------------------- meter */
+
+const segments = [];
+for (let i = 0; i < SEGMENTS; i += 1) {
+  const seg = document.createElement("span");
+  seg.className = "segment";
+  meter.append(seg);
+  segments.push(seg);
+}
+
+function setLevel(level) {
+  const lit = Math.round(level * SEGMENTS);
+  segments.forEach((seg, i) => {
+    const on = i < lit;
+    seg.classList.toggle("lit", on);
+    seg.classList.toggle("hot", on && i >= HOT_FROM && i < PEAK_FROM);
+    seg.classList.toggle("peak", on && i >= PEAK_FROM);
+  });
+}
+
+/* --------------------------------------------------------------- status */
 
 function setStatus(status, detail) {
-  orb.dataset.state = status;
-  statusDot.dataset.state = status;
-  statusText.textContent = detail || STATUS_LABEL[status] || status;
+  tally.dataset.state = status;
+  tallyState.textContent = STATE_WORDS[status] || status;
+  el("rail-engine").textContent = detail || STATE_WORDS[status] || status;
+  if (status !== "listening") setLevel(0);
 }
 
 function timeLabel(ts) {
@@ -44,87 +79,76 @@ function timeLabel(ts) {
   });
 }
 
-function setTranscript(text) {
-  transcriptEl.textContent = text ? `“${text}”` : "";
-  transcriptEl.classList.remove("placeholder");
+function countdown(seconds) {
+  const total = Math.max(0, Math.round(seconds));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    return `${h}:${String(m % 60).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-/* ------------------------------------------------------------------ feed */
+function fill(parent, children, emptyText) {
+  parent.replaceChildren();
+  if (!children.length) {
+    const li = document.createElement("li");
+    li.className = "empty";
+    li.textContent = emptyText;
+    parent.append(li);
+    return;
+  }
+  children.forEach((child) => parent.append(child));
+}
 
-function feedItem(entry) {
+/* ------------------------------------------------------------------ log */
+
+function logEntry(entry) {
   const li = document.createElement("li");
-  li.className = "feed-item";
+  li.className = entry.ok ? "entry" : "entry failed";
 
-  const tag = document.createElement("span");
-  tag.className = "tag";
-  if (!entry.ok) tag.classList.add("failed");
-  else if (NOTE_INTENTS.has(entry.intent)) tag.classList.add("notes");
-  tag.textContent = entry.intent;
+  const time = document.createElement("span");
+  time.className = "entry-time";
+  time.textContent = timeLabel(entry.ts);
 
   const body = document.createElement("div");
-  body.className = "feed-body";
 
   const said = document.createElement("div");
-  said.className = "feed-said";
-  const badge = document.createElement("span");
-  badge.className = "mic-badge";
-  badge.textContent = entry.source === "voice" ? "🎙" : "⌨";
-  said.append(badge, document.createTextNode(entry.transcript));
+  said.className = "entry-said";
+  said.dataset.source = entry.source === "voice" ? "🎙" : "⌨";
+  said.append(document.createTextNode(entry.transcript));
 
   const did = document.createElement("div");
-  did.className = "feed-did";
+  did.className = "entry-did";
   did.textContent = entry.display;
 
   body.append(said, did);
 
-  const meta = document.createElement("div");
-  meta.className = "feed-meta";
-  meta.textContent = entry.latency ? `${timeLabel(entry.ts)} · ${entry.latency}s` : timeLabel(entry.ts);
+  const intent = document.createElement("span");
+  intent.className = "entry-intent";
+  intent.textContent = entry.intent;
 
-  li.append(tag, body, meta);
+  li.append(time, body, intent);
   return li;
 }
 
-function renderFeed(entries) {
-  feedEl.replaceChildren();
-  if (!entries.length) {
-    const empty = document.createElement("li");
-    empty.className = "feed-empty";
-    empty.textContent = "Nothing yet. Say a command or type one below.";
-    feedEl.append(empty);
-    return;
-  }
-  entries.forEach((entry) => feedEl.append(feedItem(entry)));
+function renderLog(entries) {
+  fill(feedEl, entries.map(logEntry), "Nothing yet. Speak, or type a command below.");
 }
 
-function prependFeed(entry) {
-  const empty = feedEl.querySelector(".feed-empty");
-  if (empty) empty.remove();
-  feedEl.prepend(feedItem(entry));
-  while (feedEl.children.length > 40) feedEl.lastElementChild.remove();
-}
-
-/* ----------------------------------------------------------------- notes */
+/* ---------------------------------------------------------------- notes */
 
 function renderNotes(notes) {
-  notesEl.replaceChildren();
   const pending = notes.filter((n) => !n.done);
   noteCount.textContent = pending.length;
 
-  if (!notes.length) {
-    const empty = document.createElement("li");
-    empty.className = "feed-empty";
-    empty.textContent = "No notes yet. Try “note: finish the demo”.";
-    notesEl.append(empty);
-    return;
-  }
-
-  // Numbering follows the pending list, so "check off 2" on the dashboard
-  // means the same thing it means out loud.
+  // Numbering follows the pending list so "check off 2" on screen means the
+  // same thing it means out loud.
   let position = 0;
-  notes.forEach((note) => {
+  const rows = notes.map((note) => {
     const li = document.createElement("li");
-    li.className = "note-item" + (note.done ? " done" : "");
+    li.className = note.done ? "note done" : "note";
 
     const index = document.createElement("span");
     index.className = "note-index";
@@ -134,6 +158,7 @@ function renderNotes(notes) {
     check.type = "checkbox";
     check.className = "note-check";
     check.checked = note.done;
+    check.setAttribute("aria-label", `Done: ${note.text}`);
     check.addEventListener("change", () =>
       fetch(`/api/notes/${note.id}/toggle`, { method: "POST" })
     );
@@ -142,33 +167,301 @@ function renderNotes(notes) {
     text.className = "note-text";
     text.textContent = note.text;
 
-    const del = document.createElement("button");
-    del.className = "note-del";
-    del.title = "Delete note";
-    del.textContent = "×";
-    del.addEventListener("click", () =>
+    const remove = document.createElement("button");
+    remove.className = "row-remove";
+    remove.title = "Delete note";
+    remove.textContent = "×";
+    remove.addEventListener("click", () =>
       fetch(`/api/notes/${note.id}`, { method: "DELETE" })
     );
 
-    li.append(index, check, text, del);
-    notesEl.append(li);
+    li.append(index, check, text, remove);
+    return li;
   });
+
+  fill(notesEl, rows, "Say “note: finish the slides”.");
+}
+
+/* --------------------------------------------------------------- timers */
+
+let liveTimers = [];
+
+function renderTimers(timers, missed) {
+  liveTimers = timers;
+
+  const rows = timers.map((timer) => {
+    const li = document.createElement("li");
+    li.className = "timer";
+    li.dataset.at = timer.at;
+
+    const remaining = document.createElement("span");
+    remaining.className = "timer-remaining";
+    remaining.textContent = countdown(timer.remaining);
+
+    const label = document.createElement("span");
+    label.className = "timer-label";
+    label.textContent = timer.label;
+
+    const cancel = document.createElement("button");
+    cancel.className = "row-remove";
+    cancel.title = "Cancel timer";
+    cancel.textContent = "×";
+    cancel.addEventListener("click", () =>
+      fetch(`/api/timers/${timer.id}`, { method: "DELETE" })
+    );
+
+    li.append(remaining, label, cancel);
+    return li;
+  });
+
+  (missed || []).forEach((timer) => {
+    const li = document.createElement("li");
+    li.className = "timer missed";
+    const when = document.createElement("span");
+    when.className = "timer-remaining";
+    when.textContent = "missed";
+    const label = document.createElement("span");
+    label.className = "timer-label";
+    label.textContent = timer.label;
+    li.append(when, label);
+    rows.push(li);
+  });
+
+  fill(timersEl, rows, "Say “remind me in 20 minutes to stretch”.");
+}
+
+// One ticker for every countdown, rather than one per row.
+setInterval(() => {
+  const now = Date.now() / 1000;
+  timersEl.querySelectorAll(".timer[data-at]").forEach((row) => {
+    const remaining = Number(row.dataset.at) - now;
+    row.querySelector(".timer-remaining").textContent = countdown(remaining);
+  });
+}, 1000);
+
+/* ------------------------------------------------------------ shortcuts */
+
+function renderAliases(aliases) {
+  const rows = aliases.map((alias) => {
+    const li = document.createElement("li");
+    li.className = "alias";
+
+    const phrase = document.createElement("span");
+    phrase.className = "alias-phrase";
+    phrase.textContent = alias.phrase;
+
+    const arrow = document.createElement("span");
+    arrow.className = "alias-arrow";
+    arrow.textContent = "→";
+
+    const target = document.createElement("span");
+    target.className = "alias-target";
+    target.textContent = alias.target;
+    target.title = alias.target;
+
+    const remove = document.createElement("button");
+    remove.className = "row-remove";
+    remove.title = "Forget shortcut";
+    remove.textContent = "×";
+    remove.addEventListener("click", () =>
+      fetch(`/api/aliases/${encodeURIComponent(alias.phrase)}`, { method: "DELETE" })
+    );
+
+    li.append(phrase, arrow, target, remove);
+    return li;
+  });
+
+  fill(aliasesEl, rows, "Say “when I say my class, open …”.");
+}
+
+/* ------------------------------------------------------------ patch bay */
+
+function connectorRow(connector) {
+  const li = document.createElement("li");
+  li.className = "jack";
+
+  const head = document.createElement("button");
+  head.className = "jack-head";
+  head.type = "button";
+  head.setAttribute("aria-expanded", String(openJack === connector.name));
+
+  const ring = document.createElement("span");
+  ring.className = "jack-ring";
+  ring.dataset.state = connector.state;
+
+  const name = document.createElement("span");
+  name.className = "jack-name";
+  name.textContent = connector.label;
+
+  const state = document.createElement("span");
+  state.className = "jack-state";
+  state.dataset.state = connector.state;
+  state.textContent = connector.state === "off" ? "off" : connector.needs || connector.state;
+
+  head.append(ring, name, state);
+  head.addEventListener("click", () => {
+    openJack = openJack === connector.name ? null : connector.name;
+    renderConnectorsFromState();
+  });
+  li.append(head);
+
+  if (openJack !== connector.name) return li;
+
+  const body = document.createElement("div");
+  body.className = "jack-body";
+
+  if (connector.docs) {
+    const docs = document.createElement("p");
+    docs.className = "jack-docs";
+    if (connector.docs.startsWith("http")) {
+      const link = document.createElement("a");
+      link.href = connector.docs;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      link.textContent = connector.docs;
+      docs.append("Setup instructions: ", link);
+    } else {
+      docs.textContent = connector.docs;
+    }
+    body.append(docs);
+  }
+
+  if (connector.command) {
+    const command = document.createElement("p");
+    command.className = "jack-docs";
+    command.textContent = `Runs: ${connector.command}`;
+    body.append(command);
+  }
+
+  const inputs = {};
+  (connector.fields || []).forEach((field) => {
+    const label = document.createElement("label");
+    label.className = "field";
+    const caption = document.createElement("span");
+    caption.textContent = field.label;
+    const input = document.createElement("input");
+    input.type = field.secret ? "password" : "text";
+    input.value = field.value || "";
+    input.placeholder = field.placeholder || "";
+    inputs[field.key] = input;
+    label.append(caption, input);
+    body.append(label);
+  });
+
+  const actions = document.createElement("div");
+  actions.className = "jack-actions";
+
+  const save = document.createElement("button");
+  save.className = "primary";
+  save.type = "button";
+  save.textContent = "Save";
+  save.addEventListener("click", async () => {
+    const changes = {};
+    Object.entries(inputs).forEach(([key, input]) => {
+      // A blank secret means "leave the stored one alone", not "erase it".
+      if (key.startsWith("env.")) {
+        if (!input.value) return;
+        changes.env = { ...(changes.env || {}), [key.slice(4)]: input.value };
+      } else {
+        changes[key] = input.value;
+      }
+    });
+    await fetch(`/api/connectors/${connector.name}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(changes),
+    });
+  });
+
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.textContent = connector.enabled ? "Turn off" : "Turn on";
+  toggle.addEventListener("click", () =>
+    fetch(`/api/connectors/${connector.name}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: !connector.enabled }),
+    })
+  );
+
+  actions.append(save, toggle);
+
+  const tools = document.createElement("p");
+  tools.className = "jack-tools";
+
+  if (connector.type === "MCP") {
+    const list = document.createElement("button");
+    list.type = "button";
+    list.textContent = "List tools";
+    list.addEventListener("click", async () => {
+      tools.textContent = "Starting the server…";
+      const res = await fetch(`/api/connectors/${connector.name}/tools`);
+      const data = await res.json();
+      tools.textContent = data.tools.length
+        ? data.tools.map((t) => t.name).join("\n")
+        : data.error || "No tools reported.";
+    });
+    actions.append(list);
+  }
+
+  const test = document.createElement("button");
+  test.type = "button";
+  test.textContent = "Send a test note";
+  test.addEventListener("click", async () => {
+    tools.textContent = "Sending…";
+    const res = await fetch(`/api/connectors/${connector.name}/test`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: "Test note from Sayso" }),
+    });
+    const data = await res.json();
+    tools.textContent = data.ok ? `Delivered: ${data.detail}` : `Failed: ${data.detail}`;
+  });
+  actions.append(test);
+
+  body.append(actions, tools);
+  li.append(body);
+  return li;
+}
+
+function renderConnectors(connectors) {
+  fill(connectorsEl, connectors.map(connectorRow), "No connectors configured.");
+  const live = connectors.filter((c) => c.state === "connected").map((c) => c.label);
+  el("rail-links").textContent = live.length ? live.join(", ") : "none";
 }
 
 /* ------------------------------------------------------------------ data */
 
-async function refreshState() {
+let lastState = null;
+
+async function loadState() {
   const res = await fetch("/api/state");
-  const state = await res.json();
-  setStatus(state.status, state.detail);
-  renderFeed(state.history);
-  renderNotes(state.notes);
+  lastState = await res.json();
+  return lastState;
 }
 
-async function refreshNotes() {
-  const res = await fetch("/api/state");
-  const state = await res.json();
+async function renderAll() {
+  const state = await loadState();
+  setStatus(state.status, state.detail);
+  renderLog(state.history);
   renderNotes(state.notes);
+  renderTimers(state.timers, state.missed_timers);
+  renderAliases(state.aliases);
+  renderConnectors(state.connectors);
+}
+
+async function renderNotesFromState() {
+  renderNotes((await loadState()).notes);
+}
+async function renderTimersFromState() {
+  const state = await loadState();
+  renderTimers(state.timers, state.missed_timers);
+}
+async function renderAliasesFromState() {
+  renderAliases((await loadState()).aliases);
+}
+async function renderConnectorsFromState() {
+  renderConnectors((await loadState()).connectors);
 }
 
 function connect() {
@@ -176,21 +469,44 @@ function connect() {
 
   source.onmessage = (message) => {
     const event = JSON.parse(message.data);
+
+    if (REFRESHERS[event.kind]) {
+      REFRESHERS[event.kind]();
+      return;
+    }
+
     switch (event.kind) {
       case "status":
         setStatus(event.status, event.detail);
         break;
+      case "level":
+        setLevel(event.level);
+        break;
       case "transcript":
-        setTranscript(event.text);
+        transcriptEl.textContent = event.text ? `“${event.text}”` : "…";
+        transcriptEl.classList.remove("waiting");
+        resultEl.textContent = "";
+        resultEl.classList.remove("bad");
+        break;
+      case "command": {
+        const empty = feedEl.querySelector(".empty");
+        if (empty) empty.remove();
+        feedEl.prepend(logEntry(event.entry));
+        while (feedEl.children.length > 40) feedEl.lastElementChild.remove();
+        resultEl.textContent = event.entry.display;
+        resultEl.classList.toggle("bad", !event.entry.ok);
+        break;
+      }
+      case "timer_fired":
+        transcriptEl.textContent = `Reminder: ${event.timer.label}`;
+        transcriptEl.classList.remove("waiting");
         resultEl.textContent = "";
         break;
-      case "command":
-        prependFeed(event.entry);
-        resultEl.textContent = event.entry.display;
-        resultEl.classList.toggle("failed", !event.entry.ok);
-        break;
-      case "notes_changed":
-        refreshNotes();
+      case "connector":
+        resultEl.textContent = event.ok
+          ? `Copied to ${event.connector}`
+          : `${event.connector} failed: ${event.detail}`;
+        resultEl.classList.toggle("bad", !event.ok);
         break;
       case "log":
         if (event.level === "error") console.error("[sayso]", event.message);
@@ -200,14 +516,22 @@ function connect() {
   };
 
   // EventSource retries on its own, but a dropped stream can mean the daemon
-  // restarted, so resync the whole state once it comes back.
+  // restarted, so resync everything once it comes back.
   source.onerror = () => {
-    statusText.textContent = "reconnecting…";
-    setTimeout(() => refreshState().catch(() => {}), 2500);
+    tallyState.textContent = "reconnecting";
+    setTimeout(() => renderAll().catch(() => {}), 2500);
   };
 }
 
 /* --------------------------------------------------------------- actions */
+
+function runCommand(text) {
+  return fetch("/api/command", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+}
 
 el("composer").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -215,11 +539,7 @@ el("composer").addEventListener("submit", (e) => {
   const text = input.value.trim();
   if (!text) return;
   input.value = "";
-  fetch("/api/command", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
+  runCommand(text);
 });
 
 el("note-form").addEventListener("submit", (e) => {
@@ -235,22 +555,38 @@ el("note-form").addEventListener("submit", (e) => {
   });
 });
 
+el("alias-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const phrase = el("alias-phrase");
+  const target = el("alias-target");
+  if (!phrase.value.trim() || !target.value.trim()) return;
+  fetch("/api/aliases", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phrase: phrase.value.trim(), target: target.value.trim() }),
+  });
+  phrase.value = "";
+  target.value = "";
+});
+
 el("clear-notes").addEventListener("click", () =>
   fetch("/api/notes/clear", { method: "POST" })
 );
 
+el("clear-timers").addEventListener("click", () =>
+  fetch("/api/timers/clear", { method: "POST" })
+);
+
 el("clear-history").addEventListener("click", async () => {
   await fetch("/api/history/clear", { method: "POST" });
-  renderFeed([]);
+  renderLog([]);
 });
 
-document.querySelectorAll(".example").forEach((button) => {
-  button.addEventListener("click", () => {
-    el("command-input").value = button.textContent;
-    el("composer").requestSubmit();
-  });
+document.querySelectorAll(".phrase").forEach((button) => {
+  button.addEventListener("click", () => runCommand(button.textContent));
 });
 
-transcriptEl.classList.add("placeholder");
-refreshState().catch(() => setStatus("error", "dashboard could not reach the daemon"));
+transcriptEl.classList.add("waiting");
+setLevel(0);
+renderAll().catch(() => setStatus("error", "cannot reach the daemon"));
 connect();

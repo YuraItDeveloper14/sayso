@@ -1,93 +1,145 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sayso — voice control for your laptop</title>
+  <title>Sayso — talkback console</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%230b0d12'/><circle cx='50' cy='50' r='22' fill='%238b7cf6'/><circle cx='50' cy='50' r='9' fill='%230b0d12'/></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2317201f'/><rect x='7' y='20' width='4' height='6' fill='%235fb59f'/><rect x='14' y='13' width='4' height='13' fill='%235fb59f'/><rect x='21' y='7' width='4' height='19' fill='%23e0522c'/></svg>">
 </head>
 <body>
 
-<header class="topbar">
-  <div class="brand">
-    <span class="brand-eye" aria-hidden="true"></span>
-    <span class="brand-name">Sayso</span>
-    <span class="brand-tag">offline voice control</span>
+<!-- Status rail: the strip across the top of a rack unit. -->
+<header class="rail">
+  <div class="rail-brand">
+    <span class="rail-mark" aria-hidden="true"></span>
+    <span class="rail-name">Sayso</span>
   </div>
-  <div class="topbar-right">
-    <span class="chip" id="model-chip">{{ model }}</span>
-    <span class="chip chip-key">Hold <kbd>{{ hotkey }}</kbd></span>
-  </div>
+  <dl class="rail-readouts">
+    <div class="readout"><dt>Model</dt><dd>{{ model }}</dd></div>
+    <div class="readout"><dt>Speech</dt><dd id="rail-engine">starting</dd></div>
+    <div class="readout"><dt>Links</dt><dd id="rail-links">none</dd></div>
+  </dl>
+  <p class="rail-ptt">Hold <kbd>{{ hotkey }}</kbd> to talk</p>
 </header>
 
-<section class="stage">
-  <div class="orb-wrap">
-    <div class="orb" id="orb">
-      <span class="orb-ring"></span>
-      <span class="orb-core"></span>
+<!-- Hero: the talkback strip. Tally lamp, meter, and what you just said. -->
+<section class="desk">
+
+  <div class="tally-bay">
+    <div class="tally" id="tally" data-state="loading">
+      <span class="tally-glass"></span>
     </div>
-    <div class="status-line">
-      <span class="status-dot" id="status-dot"></span>
-      <span id="status-text">connecting…</span>
-    </div>
+    <p class="tally-state" id="tally-state">starting up</p>
   </div>
 
-  <div class="stage-readout">
-    <p class="readout-label">Heard</p>
-    <p class="readout-transcript" id="transcript">Hold <kbd>{{ hotkey }}</kbd> and say something like “open YouTube through Google”.</p>
-    <p class="readout-result" id="result"></p>
+  <div class="meter-bay">
+    <div class="meter" id="meter" role="img" aria-label="Microphone level">
+      <!-- 20 segments, filled from the bottom by app.js -->
+    </div>
+    <p class="meter-label">Level</p>
   </div>
+
+  <div class="transmission">
+    <p class="panel-label">Last transmission</p>
+    <p class="said" id="transcript">Hold <kbd>{{ hotkey }}</kbd>, say “open YouTube through Google”, let go.</p>
+    <p class="did" id="result"></p>
+  </div>
+
 </section>
 
-<main class="grid">
+<main class="bays">
 
-  <section class="panel panel-activity">
+  <!-- Log + composer -->
+  <section class="panel panel-log">
     <div class="panel-head">
-      <h2>Activity</h2>
-      <button class="ghost-btn" id="clear-history">Clear</button>
+      <h2 class="panel-label">Log</h2>
+      <button class="ghost" id="clear-history">Clear</button>
     </div>
-    <ol class="feed" id="feed">
-      <li class="feed-empty">Nothing yet. Say a command or type one below.</li>
+    <ol class="log" id="feed">
+      <li class="empty">Nothing yet. Speak, or type a command below.</li>
     </ol>
     <form class="composer" id="composer" autocomplete="off">
-      <input type="text" id="command-input" placeholder="Type a command — “note buy milk”, “search lofi on youtube”…" aria-label="Type a command">
+      <input type="text" id="command-input" aria-label="Type a command"
+             placeholder="Type a command instead — “note buy milk”, “remind me in 10 minutes to stretch”">
       <button type="submit">Run</button>
     </form>
   </section>
 
+  <!-- Patch bay: connections to real apps -->
+  <section class="panel panel-patch">
+    <div class="panel-head">
+      <h2 class="panel-label">Patch bay</h2>
+      <span class="hint">Notes are saved here first, then copied out</span>
+    </div>
+    <ul class="jacks" id="connectors"></ul>
+  </section>
+
   <section class="panel panel-notes">
     <div class="panel-head">
-      <h2>Notes <span class="count" id="note-count">0</span></h2>
-      <button class="ghost-btn" id="clear-notes">Clear</button>
+      <h2 class="panel-label">Notes <span class="count" id="note-count">0</span></h2>
+      <button class="ghost" id="clear-notes">Clear</button>
     </div>
     <ul class="notes" id="notes">
-      <li class="feed-empty">No notes yet. Try “note: finish the demo”.</li>
+      <li class="empty">Say “note: finish the slides”.</li>
     </ul>
-    <form class="composer composer-notes" id="note-form" autocomplete="off">
-      <input type="text" id="note-input" placeholder="Add a note by hand…" aria-label="Add a note">
+    <form class="composer composer-slim" id="note-form" autocomplete="off">
+      <input type="text" id="note-input" placeholder="Add a note" aria-label="Add a note">
       <button type="submit">Add</button>
     </form>
   </section>
 
-  <section class="panel panel-help">
-    <div class="panel-head"><h2>What Sayso understands</h2></div>
-    <div class="help-grid">
-      <div class="help-group">
-        <h3>Open &amp; search</h3>
-        <button class="example">open youtube</button>
-        <button class="example">open youtube through google</button>
-        <button class="example">google how to pitch a hackathon project</button>
-        <button class="example">search lofi beats on youtube</button>
-        <button class="example">go to github.com</button>
+  <section class="panel panel-timers">
+    <div class="panel-head">
+      <h2 class="panel-label">Timers</h2>
+      <button class="ghost" id="clear-timers">Clear</button>
+    </div>
+    <ul class="timers" id="timers">
+      <li class="empty">Say “remind me in 20 minutes to stretch”.</li>
+    </ul>
+  </section>
+
+  <section class="panel panel-aliases">
+    <div class="panel-head">
+      <h2 class="panel-label">Shortcuts</h2>
+      <span class="hint">Phrases you taught</span>
+    </div>
+    <ul class="aliases" id="aliases">
+      <li class="empty">Say “when I say my class, open …”.</li>
+    </ul>
+    <form class="composer composer-split" id="alias-form" autocomplete="off">
+      <input type="text" id="alias-phrase" placeholder="my class" aria-label="Phrase">
+      <input type="text" id="alias-target" placeholder="classroom.google.com" aria-label="Opens">
+      <button type="submit">Teach</button>
+    </form>
+  </section>
+
+  <section class="panel panel-phrases">
+    <div class="panel-head"><h2 class="panel-label">Things to say</h2></div>
+    <div class="phrase-grid">
+      <div class="phrase-group">
+        <h3>Open and search</h3>
+        <button class="phrase">open youtube through google</button>
+        <button class="phrase">google how to pitch a hackathon project</button>
+        <button class="phrase">search lofi beats on youtube</button>
       </div>
-      <div class="help-group">
-        <h3>Notes</h3>
-        <button class="example">note: finish the slides, email the mentor</button>
-        <button class="example">remind me to submit before midnight</button>
-        <button class="example">read my notes</button>
-        <button class="example">what do I have today</button>
-        <button class="example">check off 1</button>
+      <div class="phrase-group">
+        <h3>Capture</h3>
+        <button class="phrase">note: finish the slides, email the mentor</button>
+        <button class="phrase">read my notes</button>
+        <button class="phrase">check off 1</button>
+      </div>
+      <div class="phrase-group">
+        <h3>Time</h3>
+        <button class="phrase">remind me in 10 minutes to stretch</button>
+        <button class="phrase">set a timer for 2 minutes</button>
+        <button class="phrase">what timers are running</button>
+      </div>
+      <div class="phrase-group">
+        <h3>Teach it</h3>
+        <button class="phrase">when I say my class open classroom.google.com</button>
+        <button class="phrase">what shortcuts do I have</button>
+        <button class="phrase">forget my class</button>
       </div>
     </div>
   </section>
@@ -95,7 +147,9 @@
 </main>
 
 <footer class="foot">
-  <span>Everything runs on this machine — speech recognition, parsing and speech output all work with the Wi-Fi off.</span>
+  Speech recognition, command parsing and the spoken replies all run on this
+  machine. Connectors are the only part that reaches the network, and only for
+  the notes you choose to copy out.
 </footer>
 
 <script src="{{ url_for('static', filename='app.js') }}"></script>

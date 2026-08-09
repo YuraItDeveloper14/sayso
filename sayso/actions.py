@@ -1,13 +1,18 @@
 """Execute a parsed Intent: drive the browser, edit notes, talk back."""
 
 import re
+import threading
 import time
 import webbrowser
 from dataclasses import dataclass, field
 
+from .aliases import store as alias_store
 from .config import settings
+from .connectors import registry
+from .events import bus
 from .intents import SEARCH_ENGINES, _search_url, resolve_target
 from .notes import store
+from .timers import humanize, scheduler
 
 
 @dataclass
@@ -97,15 +102,43 @@ def site_search(query, engine):
     )
 
 
+def _mirror_to_connectors(texts):
+    """Send notes on to Obsidian, Notion and friends, off the critical path.
+
+    A connector can take seconds - an MCP server may have to start up - and the
+    note is already saved locally, so none of that is worth making the user
+    wait for.
+    """
+    if not registry.active():
+        return
+
+    def deliver():
+        for text in texts:
+            for name, ok, detail in registry.deliver_note(text):
+                bus.publish("connector", connector=name, ok=ok, detail=detail, text=text)
+
+    threading.Thread(target=deliver, daemon=True, name="sayso-connectors").start()
+
+
 def write_note(text, source="voice"):
     cleaned = _tidy_note(text)
     if not cleaned:
         return Result(False, "Nothing to write down", "I did not catch the note")
+
     created = store.add(cleaned, source=source)
+    _mirror_to_connectors([n["text"] for n in created])
+
+    live = [c.name for c in registry.active()]
+    suffix = f" → {', '.join(live)}" if live else ""
+
     if len(created) == 1:
-        return Result(True, f"Noted: {created[0]['text']}", "Noted")
+        return Result(True, f"Noted: {created[0]['text']}{suffix}", "Noted")
     joined = "; ".join(n["text"] for n in created)
-    return Result(True, f"Noted {len(created)} items: {joined}", f"Noted {len(created)} items")
+    return Result(
+        True,
+        f"Noted {len(created)} items: {joined}{suffix}",
+        f"Noted {len(created)} items",
+    )
 
 
 def read_notes():
@@ -140,8 +173,75 @@ def clear_notes():
     return Result(True, f"Cleared {count} notes", f"Cleared {count} notes")
 
 
+def set_timer(seconds, label):
+    if seconds <= 0:
+        return Result(False, "That is not a length of time", "I did not catch how long")
+    timer = scheduler.add(seconds, label)
+    spoken_length = humanize(seconds)
+    what = f" to {timer['label']}" if label else ""
+    return Result(
+        True,
+        f"Timer set for {spoken_length}{what}",
+        f"Timer set for {spoken_length}{what}",
+    )
+
+
+def cancel_timers():
+    count = scheduler.cancel_all()
+    if not count:
+        return Result(True, "No timers were running", "No timers were running")
+    return Result(True, f"Cancelled {count} timers", f"Cancelled {count} timers")
+
+
+def list_timers():
+    active = scheduler.active()
+    if not active:
+        return Result(True, "No timers running", "No timers running")
+    parts = [f"{t['label']} in {humanize(t['remaining'])}" for t in active]
+    return Result(True, " | ".join(parts), ". ".join(parts))
+
+
+def teach_alias(phrase, target):
+    saved = alias_store.add(phrase, target)
+    if not saved:
+        return Result(False, "That shortcut needs a name", "I did not catch the phrase")
+    label, url = resolve_target(saved["target"])
+    where = url or saved["target"]
+    return Result(
+        True,
+        f'"{saved["phrase"]}" now opens {where}',
+        f"Got it. {saved['phrase']} now opens {label or 'that'}",
+    )
+
+
+def forget_alias(phrase):
+    removed = alias_store.remove(phrase)
+    if not removed:
+        return Result(False, f'No shortcut called "{phrase}"', "I do not know that shortcut")
+    return Result(True, f'Forgot "{removed["phrase"]}"', f"Forgot {removed['phrase']}")
+
+
+def list_aliases():
+    aliases = alias_store.all()
+    if not aliases:
+        return Result(
+            True,
+            "No shortcuts taught yet",
+            "You have not taught me any shortcuts yet",
+        )
+    parts = [f'{a["phrase"]} → {a["target"]}' for a in aliases]
+    spoken = ". ".join(a["phrase"] for a in aliases)
+    return Result(True, " | ".join(parts), f"You taught me: {spoken}")
+
+
 HANDLERS = {
     "open_site": lambda p: open_site(p["target"]),
+    "set_timer": lambda p: set_timer(p["seconds"], p["label"]),
+    "cancel_timers": lambda p: cancel_timers(),
+    "list_timers": lambda p: list_timers(),
+    "teach_alias": lambda p: teach_alias(p["phrase"], p["target"]),
+    "forget_alias": lambda p: forget_alias(p["phrase"]),
+    "list_aliases": lambda p: list_aliases(),
     "open_via_google": lambda p: open_via_google(p["target"]),
     "search": lambda p: search(p["query"]),
     "site_search": lambda p: site_search(p["query"], p["engine"]),

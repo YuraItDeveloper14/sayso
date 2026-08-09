@@ -59,6 +59,36 @@ CASES = [
     ("clear all my notes", "clear_notes", {}),
     ("delete my notes", "clear_notes", {}),
 
+    # -- timers, which must outrank "remind me to" notes -------------------
+    ("remind me in 20 minutes to stretch", "set_timer",
+     {"seconds": 1200, "label": "stretch"}),
+    ("remind me in a minute to check the oven", "set_timer",
+     {"seconds": 60, "label": "check the oven"}),
+    ("in 30 seconds remind me to look up", "set_timer",
+     {"seconds": 30, "label": "look up"}),
+    ("set a timer for 5 minutes", "set_timer", {"seconds": 300, "label": ""}),
+    ("set a timer for 2 hours to submit", "set_timer",
+     {"seconds": 7200, "label": "submit"}),
+    ("10 minute timer", "set_timer", {"seconds": 600}),
+    ("cancel all timers", "cancel_timers", {}),
+    ("what timers are running", "list_timers", {}),
+
+    # -- teaching shortcuts -----------------------------------------------
+    ("when I say my class open https://classroom.google.com", "teach_alias",
+     {"phrase": "my class", "target": "https://classroom.google.com"}),
+    ("teach that standup means meet.google.com/abc", "teach_alias",
+     {"phrase": "standup", "target": "meet.google.com/abc"}),
+    ("remember the vault as obsidian.md", "teach_alias",
+     {"phrase": "the vault", "target": "obsidian.md"}),
+    ("forget my class", "forget_alias", {"phrase": "my class"}),
+    ("what shortcuts do I have", "list_aliases", {}),
+
+    # -- and the note phrasings they must not steal ------------------------
+    ("remind me to submit before midnight", "write_note",
+     {"text": "submit before midnight"}),
+    ("remember to charge the laptop", "write_note",
+     {"text": "charge the laptop"}),
+
     # -- nonsense should stay inert ---------------------------------------
     ("", "unknown", {}),
     ("uh yeah so anyway", "unknown", {}),

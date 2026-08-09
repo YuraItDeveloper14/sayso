@@ -16,7 +16,21 @@ from .events import bus
 from .history import history
 from .hotkey import PushToTalk
 from .stt import transcriber
+from .timers import scheduler
 from .tts import speaker
+
+# Which intents change which panel, so the dashboard refreshes only what moved.
+REFRESH_EVENTS = {
+    "write_note": "notes_changed",
+    "read_notes": "notes_changed",
+    "complete_note": "notes_changed",
+    "delete_note": "notes_changed",
+    "clear_notes": "notes_changed",
+    "set_timer": "timers_changed",
+    "cancel_timers": "timers_changed",
+    "teach_alias": "aliases_changed",
+    "forget_alias": "aliases_changed",
+}
 
 
 class SaysoDaemon:
@@ -42,8 +56,17 @@ class SaysoDaemon:
             return
         self._started = True
         self._worker.start()
+        scheduler.set_callback(self._on_timer)
         threading.Thread(target=self._load_model, daemon=True, name="sayso-load").start()
         self.hotkey.start()
+
+    def _on_timer(self, timer):
+        """A reminder came due. Say it out loud and show it on the dashboard."""
+        spoken = f"Reminder: {timer['label']}"
+        bus.publish("timer_fired", timer=timer)
+        bus.publish("timers_changed")
+        if settings.speak_replies:
+            speaker.say(spoken)
 
     def _load_model(self):
         bus.set_status(events.LOADING, f"loading {settings.model_size}")
@@ -124,8 +147,9 @@ class SaysoDaemon:
             latency=time.time() - started,
         )
         bus.publish("command", entry=entry)
-        if intent.name in ("write_note", "read_notes", "complete_note", "delete_note", "clear_notes"):
-            bus.publish("notes_changed")
+        refresh = REFRESH_EVENTS.get(intent.name)
+        if refresh:
+            bus.publish(refresh)
 
         if settings.speak_replies and result.say:
             speaker.say(result.say)

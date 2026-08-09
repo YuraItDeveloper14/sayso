@@ -4,12 +4,22 @@ Records 16 kHz mono float32 - exactly the format Whisper wants - so no
 resampling happens between the mic and the model.
 """
 
+import math
 import threading
+import time
 
 import numpy as np
 import sounddevice as sd
 
 from .config import settings
+from .events import bus
+
+# The meter reads in decibels, because speech amplitude is logarithmic and a
+# linear bar sits nearly flat until you shout. -60 dB is a silent room, -6 dB is
+# close to clipping.
+FLOOR_DB = -60.0
+CEILING_DB = -6.0
+METER_HZ = 15
 
 
 class MicUnavailable(RuntimeError):
@@ -27,10 +37,19 @@ class Recorder:
         self._lock = threading.Lock()
         self._max_frames = int(self.sample_rate * self.max_seconds)
         self._frames_captured = 0
+        self._last_meter = 0.0
+        self.peak = 0.0
 
     @property
     def is_recording(self):
         return self._stream is not None
+
+    @staticmethod
+    def _level(block):
+        """One audio block to a 0-1 meter reading."""
+        rms = float(np.sqrt(np.mean(np.square(block))))
+        db = 20.0 * math.log10(rms) if rms > 1e-9 else FLOOR_DB
+        return min(1.0, max(0.0, (db - FLOOR_DB) / (CEILING_DB - FLOOR_DB)))
 
     def _callback(self, indata, frames, time_info, status):
         # `status` reports xruns; a dropped frame or two is not worth aborting a
@@ -41,12 +60,24 @@ class Recorder:
             self._frames.append(indata.copy())
             self._frames_captured += frames
 
+        level = self._level(indata)
+        self.peak = max(self.peak, level)
+
+        # The callback runs hundreds of times a second; the meter only needs to
+        # move as fast as an eye can follow.
+        now = time.monotonic()
+        if now - self._last_meter >= 1.0 / METER_HZ:
+            self._last_meter = now
+            bus.publish("level", level=round(level, 3), peak=round(self.peak, 3))
+
     def start(self):
         if self._stream is not None:
             return
         with self._lock:
             self._frames = []
             self._frames_captured = 0
+        self.peak = 0.0
+        self._last_meter = 0.0
         try:
             self._stream = sd.InputStream(
                 samplerate=self.sample_rate,
@@ -75,6 +106,8 @@ class Recorder:
             frames = self._frames
             self._frames = []
             self._frames_captured = 0
+
+        bus.publish("level", level=0.0, peak=round(self.peak, 3))
 
         if not frames:
             return None
