@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sayso — talkback console</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2317201f'/><rect x='7' y='20' width='4' height='6' fill='%235fb59f'/><rect x='14' y='13' width='4' height='13' fill='%235fb59f'/><rect x='21' y='7' width='4' height='19' fill='%23e0522c'/></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2314100c'/><rect x='7' y='20' width='4' height='6' fill='%2386a86b'/><rect x='14' y='13' width='4' height='13' fill='%23f0a830'/><rect x='21' y='7' width='4' height='19' fill='%23e04a25'/></svg>">
 </head>
 <body>
 
@@ -70,7 +70,7 @@
   <section class="panel panel-patch">
     <div class="panel-head">
       <h2 class="panel-label">Patch bay</h2>
-      <span class="hint">Notes are saved here first, then copied out</span>
+      <span class="hint">Notes save locally first, then copy out</span>
     </div>
     <ul class="jacks" id="connectors"></ul>
   </section>
@@ -147,9 +147,10 @@
 </main>
 
 <footer class="foot">
-  Speech recognition, command parsing and the spoken replies all run on this
-  machine. Connectors are the only part that reaches the network, and only for
-  the notes you choose to copy out.
+  Listening, recognition and the spoken replies run entirely on this machine —
+  unplug the network and all of it still works. Connectors are the exception:
+  the ones marked <em>needs internet</em> send your notes to a hosted account,
+  and only once you turn them on.
 </footer>
 
 <script src="{{ url_for('static', filename='app.js') }}"></script>

@@ -188,12 +188,17 @@ is the whole design rule for this layer.
 
 Four are configured from the dashboard's patch bay:
 
-| Connector | What it needs | Notes |
-|---|---|---|
-| **Obsidian** | nothing | A vault is a folder of Markdown files. Point it at a note inside one and captures land there. No account, no token, works offline. Also fits Logseq and Foam. |
-| **Notion** | an integration token | Runs Notion's MCP server as a subprocess. |
-| **Todoist** | an API token | Same, for tasks rather than pages. |
-| **Webhook** | a URL | The escape hatch: Zapier, Make, n8n, Discord, your own server. |
+| Connector | Network | What it needs | Notes |
+|---|---|---|---|
+| **Obsidian** | works offline | nothing | A vault is a folder of Markdown files. Point it at a note inside one and captures land there. No account, no token. Also fits Logseq and Foam. |
+| **Notion** | needs internet | an integration token | Runs Notion's MCP server as a subprocess. |
+| **Todoist** | needs internet | an API token | Same, for tasks rather than pages. |
+| **Webhook** | needs internet | a URL | The escape hatch: Zapier, Make, n8n, Discord, your own server. |
+
+Each row in the patch bay carries that label, so the moment a connector costs
+you the offline guarantee, the dashboard says so on the row you are about to
+switch on. Turning on Notion means your notes now travel to Notion's servers;
+that should never be a surprise buried in a README.
 
 **On MCP.** MCP servers are how a growing list of apps expose their actions, and
 each one is a process Sayso launches and speaks to over stdin/stdout. Adding an
@@ -227,18 +232,27 @@ what they contain.
 | Frontend | vanilla HTML/CSS/JS | no build step |
 | Storage | JSON on disk | notes, timers and history survive restarts |
 
-Out of the box nothing leaves the machine: no account, no API key, no request to
-any server. Connectors are the only part that reaches the network, they are off
-until you turn one on, and they only ever send the notes you chose to copy out.
+**What needs the network, and what does not.** Everything that makes Sayso work
+— listening, recognition, parsing, notes, timers, shortcuts, spoken replies —
+runs on this machine and keeps running with the network unplugged. There is no
+account and no API key to start.
+
+The exception is connectors, and only some of them. Obsidian writes to a folder
+on your disk and needs nothing. Notion, Todoist and webhooks send your notes to
+a hosted service, so they need internet and a token. All connectors are off
+until you turn one on, and each one is labelled in the dashboard with which kind
+it is.
 
 ---
 
 ## The dashboard
 
 Push-to-talk is radio, so the interface is broadcast equipment rather than an
-assistant: instrument-slate chassis, a tally lamp that goes red while the key is
-held, a segmented level meter, and silkscreened panel labels. Connectors live in
-a patch bay, because that is what they are.
+assistant: a warm dark chassis the colour of old studio gear, cream lettering,
+an amber backlight, a tally lamp that goes red while the key is held, and a
+segmented level meter. Connectors live in a patch bay, because that is what they
+are. Indicator colours carry one meaning each — jade is fine, amber is loud or
+needs attention, ember is live or broken — and nothing else uses them.
 
 Every typeface is one that ships with the OS. Sayso has to work with the network
 off, so a font CDN was never an option — and condensed Bahnschrift happens to be

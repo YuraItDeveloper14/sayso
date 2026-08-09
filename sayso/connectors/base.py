@@ -19,6 +19,12 @@ class Connector:
     #: Shown in the patch bay.
     type_name = "connector"
 
+    #: Whether turning this on means Sayso starts talking to the network.
+    #: Surfaced in the dashboard, because "works offline" stops being true the
+    #: moment a hosted connector is switched on and the user deserves to see
+    #: exactly which ones cost that.
+    requires_network = False
+
     def __init__(self, name, config):
         self.name = name
         self.config = config or {}
@@ -54,6 +60,9 @@ class Connector:
             "state": self.state(),
             "needs": self.needs,
             "error": self.last_error,
+            "requires_network": bool(
+                self.config.get("requires_network", self.requires_network)
+            ),
             # Subclasses list what the dashboard should offer to edit. Secrets
             # are declared here but their values never are.
             "fields": [],

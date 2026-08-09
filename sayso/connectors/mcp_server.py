@@ -26,6 +26,9 @@ CALL_TIMEOUT = 30
 
 class MCPConnector(Connector):
     type_name = "MCP"
+    # An MCP server can be a purely local program, but every preset shipped
+    # here talks to a hosted account. Override per connector in the config.
+    requires_network = True
 
     def __init__(self, name, config):
         super().__init__(name, config)

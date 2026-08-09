@@ -12,6 +12,7 @@ from .base import Connector, Delivery
 
 class WebhookConnector(Connector):
     type_name = "webhook"
+    requires_network = True
 
     @property
     def url(self):

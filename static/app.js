@@ -293,12 +293,18 @@ function connectorRow(connector) {
   name.className = "jack-name";
   name.textContent = connector.label;
 
+  // Say plainly which connectors give up the offline guarantee.
+  const net = document.createElement("span");
+  net.className = "jack-net";
+  net.dataset.network = String(connector.requires_network);
+  net.textContent = connector.requires_network ? "needs internet" : "works offline";
+
   const state = document.createElement("span");
   state.className = "jack-state";
   state.dataset.state = connector.state;
   state.textContent = connector.state === "off" ? "off" : connector.needs || connector.state;
 
-  head.append(ring, name, state);
+  head.append(ring, name, net, state);
   head.addEventListener("click", () => {
     openJack = openJack === connector.name ? null : connector.name;
     renderConnectorsFromState();
