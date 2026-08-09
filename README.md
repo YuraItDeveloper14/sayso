@@ -98,15 +98,35 @@ on any machine with a browser, and satisfies the hackathon's web-app brief.
 
 ## Running it
 
+**The built app** — [download it](https://github.com/YuraItDeveloper14/sayso/releases/latest),
+unzip, run `SaySo.exe`. No Python, no install. The speech model and the neural
+voice are inside, so it works with the network off from the first run.
+
+**From source:**
+
 ```bash
 py -3.12 -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
 .venv\Scripts\python run.py
 ```
 
-The dashboard opens at `http://127.0.0.1:5000`. The first run downloads the
-speech model once (~75 MB); after that you can turn the Wi-Fi off entirely and
-everything still works.
+The dashboard opens at `http://127.0.0.1:5000`. From source, the first run
+downloads the speech model once (~75 MB); after that you can turn the Wi-Fi off
+entirely and everything still works.
+
+To build the app yourself:
+
+```bash
+powershell -ExecutionPolicy Bypass -File tools\build_exe.ps1
+```
+
+It produces a folder rather than a single file on purpose. Bundling ~300 MB of
+model runtime into one executable makes Windows re-extract all of it to a temp
+directory on every launch, which turns a two-second start into a minute.
+
+A packaged build keeps its `data\` and `models\` beside the executable, not
+inside it — so notes, keys and voices survive an upgrade, and no key of yours
+ever ends up in a build you hand to somebody else.
 
 A background app you have to launch by hand every morning is only half a
 background app:

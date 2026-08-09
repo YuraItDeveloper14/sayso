@@ -197,13 +197,14 @@
     <p class="lead">Start with the app — the extension and the console both need it running.</p>
     <div class="gets">
 
-      <a class="get" href="https://github.com/YuraItDeveloper14/sayso/archive/refs/heads/main.zip">
+      <a class="get" href="https://github.com/YuraItDeveloper14/sayso/releases/download/v1.0.0/SaySo-windows.zip">
         <span class="lamp" aria-hidden="true"></span>
         <h3>The app</h3>
-        <p>The daemon and the console together. Windows, Python 3.12. Start here —
-           nothing else works without it.</p>
-        <span class="action">Download</span>
-        <span class="meta">ZIP · then follow the README</span>
+        <p>The daemon and the console together, with the speech model and the
+           voice already inside. No Python to install. Start here — nothing else
+           works without it.</p>
+        <span class="action">Download for Windows</span>
+        <span class="meta">259 MB · unzip, run SaySo.exe</span>
       </a>
 
       <a class="get" href="https://github.com/YuraItDeveloper14/sayso/releases/download/v1.0.0/sayso-extension.zip">
@@ -226,16 +227,19 @@
 
     </div>
 
+    <p class="note">
+      The download carries its own speech model and neural voice, so the app
+      works with the network off from the first run. There is nothing to sign up
+      for. To have it start with Windows, run <code>SaySo.exe --install-autostart</code>
+      once.
+    </p>
+
+    <h2 style="margin-top:30px">Or run it from source</h2>
     <pre class="install">git clone https://github.com/YuraItDeveloper14/sayso
 cd sayso
 py -3.12 -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
 .venv\Scripts\python run.py</pre>
-    <p class="note">
-      The first run downloads the speech model once, about 75 MB; after that you
-      can turn the Wi-Fi off entirely. There is nothing to sign up for. To have
-      it start with Windows: <code>python run.py --install-autostart</code>.
-    </p>
   </section>
 
   <footer class="site-foot">
