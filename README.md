@@ -108,11 +108,30 @@ The dashboard opens at `http://127.0.0.1:5000`. The first run downloads the
 speech model once (~75 MB); after that you can turn the Wi-Fi off entirely and
 everything still works.
 
+A background app you have to launch by hand every morning is only half a
+background app:
+
+```bash
+.venv\Scripts\python run.py --install-autostart
+.venv\Scripts\python run.py --remove-autostart
+```
+
+That writes a shortcut into your own Startup folder — no registry, no admin
+rights — and launches the windowless interpreter so nothing flashes on screen.
+
 Run the tests with:
 
 ```bash
 .venv\Scripts\python tests\test_intents.py
 ```
+
+### Three ways to talk to it
+
+| | |
+|---|---|
+| **Hold `Ctrl+Alt+S`** | anywhere, in any app. Release to send. |
+| **`Esc` while holding** | throws the recording away. You often know you said the wrong thing before you have finished saying it, and this is the last moment it is still free. |
+| **Click the tally lamp** | on the dashboard: click to start, click again to send, `Esc` or the Cancel button to discard. For when your hands are already on the screen. |
 
 ---
 

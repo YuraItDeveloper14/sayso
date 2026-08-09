@@ -145,16 +145,34 @@ kbd {
 /* Tally lamp: dark glass until the key goes down. */
 .tally-bay { display: flex; flex-direction: column; align-items: center; gap: 7px; }
 
+/* Also the button: click to talk, click again to send. */
 .tally {
   width: 58px;
   height: 58px;
+  padding: 0;
   border-radius: 50%;
   background: #241009;
   border: 3px solid var(--rail);
   display: grid;
   place-items: center;
+  cursor: pointer;
   transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
+.tally:hover { border-color: var(--sand); }
+
+.tally-cancel {
+  background: none;
+  border: 1px solid rgba(224, 74, 37, 0.45);
+  border-radius: 2px;
+  color: var(--ember);
+  font-family: var(--face);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  cursor: pointer;
+}
+.tally-cancel:hover { background: rgba(224, 74, 37, 0.15); }
 
 .tally-glass {
   width: 34px;

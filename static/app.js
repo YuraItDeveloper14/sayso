@@ -92,12 +92,36 @@ function setLevel(level) {
 
 /* --------------------------------------------------------------- status */
 
+let listening = false;
+
 function setStatus(status, detail) {
   tally.dataset.state = status;
   tallyState.textContent = STATE_WORDS[status] || status;
   el("rail-engine").textContent = detail || STATE_WORDS[status] || status;
-  if (status !== "listening") setLevel(0);
+  listening = status === "listening";
+  el("tally-cancel").hidden = !listening;
+  tally.setAttribute(
+    "aria-label",
+    listening ? "Click to send what you said" : "Click to start listening"
+  );
+  if (!listening) setLevel(0);
 }
+
+/* Click to talk, click again to send, Escape to throw it away — the same three
+   moves as the hotkey, for when your hands are already on the screen. */
+function listen(action) {
+  return fetch(`/api/listen/${action}`, { method: "POST" });
+}
+
+tally.addEventListener("click", () => listen(listening ? "stop" : "start"));
+el("tally-cancel").addEventListener("click", () => listen("cancel"));
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && listening) {
+    event.preventDefault();
+    listen("cancel");
+  }
+});
 
 function timeLabel(ts) {
   return new Date(ts * 1000).toLocaleTimeString([], {
@@ -550,8 +574,13 @@ function connect() {
         setLevel(event.level);
         break;
       case "transcript":
-        transcriptEl.textContent = event.text ? `“${event.text}”` : "…";
-        transcriptEl.classList.remove("waiting");
+        if (event.source === "cancelled") {
+          transcriptEl.textContent = "Cancelled — nothing was sent";
+          transcriptEl.classList.add("waiting");
+        } else {
+          transcriptEl.textContent = event.text ? `“${event.text}”` : "…";
+          transcriptEl.classList.remove("waiting");
+        }
         resultEl.textContent = "";
         resultEl.classList.remove("bad");
         break;

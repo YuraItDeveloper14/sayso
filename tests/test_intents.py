@@ -81,7 +81,6 @@ CASES = [
     ("remember the vault as obsidian.md", "teach_alias",
      {"phrase": "the vault", "target": "obsidian.md"}),
     ("forget my class", "forget_alias", {"phrase": "my class"}),
-    ("what shortcuts do I have", "list_aliases", {}),
 
     # -- and the note phrasings they must not steal ------------------------
     ("remind me to submit before midnight", "write_note",
@@ -95,6 +94,8 @@ CASES = [
     ("take that back", "undo", {}),
     ("stop", "dismiss_alarm", {}),
     ("quiet", "dismiss_alarm", {}),
+    # "ok" is a thing people say for a hundred reasons; it must not be a command.
+    ("ok", "noise", {}),
 
     # -- tab control, handed to the extension ------------------------------
     ("close tab", "browser", {"action": "close_tab"}),
@@ -142,7 +143,9 @@ RESOLVE_CASES = [
     ("example.org", "https://example.org"),
     ("notion", "https://www.notion.so"),
     ("figma", "https://www.figma.com"),
-    ("someunknownapp", "https://someunknownapp.com"),
+    # Unknown words fall through to a search rather than inventing a domain.
+    ("someunknownapp", None),
+    ("notepad", None),
     ("a long phrase that is not a site", None),
 ]
 

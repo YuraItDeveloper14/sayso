@@ -112,6 +112,23 @@ def api_events():
     )
 
 
+@app.route("/api/listen/<action>", methods=["POST"])
+def api_listen(action):
+    """Drive the microphone from the dashboard's tally lamp.
+
+    Click to start, click again to send, Escape to throw it away — the same
+    three moves the global hotkey gives you, for when your hands are already
+    on the screen.
+    """
+    if action == "start":
+        return jsonify({"listening": daemon.begin_listening()})
+    if action == "stop":
+        return jsonify({"sent": daemon.finish_listening()})
+    if action == "cancel":
+        return jsonify({"cancelled": daemon.cancel_listening()})
+    return jsonify({"error": "unknown action"}), 400
+
+
 @app.route("/api/command", methods=["POST"])
 def api_command():
     text = (request.json or {}).get("text", "").strip()

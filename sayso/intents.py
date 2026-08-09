@@ -116,7 +116,7 @@ class Intent:
 # guess takes, and echoing them back as a failed command makes Sayso look
 # broken when the truth is that nothing was said.
 HALLUCINATIONS = {
-    "you", "thank you", "thanks", "thanks for watching", "bye", "okay",
+    "you", "thank you", "thanks", "thanks for watching", "bye", "ok", "okay",
     "thank you for watching", "please subscribe", "the end", "hmm", "uh",
     "so", "yeah", "mm", "mhm", "oh",
 }
@@ -206,9 +206,9 @@ def resolve_target(raw_target, _following_alias=False):
         label = target.split("/")[0]
         return (label, f"https://{target}")
 
-    if " " not in target and len(target) > 1:
-        return (target.capitalize(), f"https://{target}.com")
-
+    # A bare unknown word used to become "<word>.com", which is right for
+    # "hackerrank" and nonsense for "notepad". A search is never wrong, only
+    # one click longer, so unknown words fall through to one.
     return (None, None)
 
 
@@ -308,10 +308,13 @@ def _forget_alias(match, text):
     return Intent("forget_alias", {"phrase": match.group("phrase").strip()})
 
 
-@rule("list_aliases", r"^(?:what|which)\s+(?:shortcuts?|aliases)\b.*$")
-@rule("list_aliases", r"^(?:list|show)\s+(?:me\s+)?(?:my\s+)?(?:shortcuts?|aliases)$")
-def _list_aliases(match, text):
-    return Intent("list_aliases")
+# Listing shortcuts out loud is gone: you set them up looking at the screen,
+# and the Shortcuts panel is already showing them. Two fewer rules that could
+# swallow something else.
+#
+# Listing *timers* stays, though I argued for cutting both. Timers are the one
+# thing you ask about precisely when you cannot see the screen - the app is
+# running in the background, which is the whole point of it.
 
 
 # Recovery, and silencing a ringing alarm. Both are short phrases people say
@@ -323,7 +326,10 @@ def _undo(match, text):
     return Intent("undo")
 
 
-@rule("dismiss_alarm", r"^(?:stop|dismiss|enough|quiet|silence|shut up|turn it off|got it|ok|okay)$")
+# "ok" and "got it" used to be here and were a mistake: they are things people
+# say for a hundred reasons, and one of them should not silently swallow a
+# command. Only words whose sole purpose is stopping a noise remain.
+@rule("dismiss_alarm", r"^(?:stop|dismiss|enough|quiet|silence|shut up|turn it off)$")
 def _dismiss_alarm(match, text):
     return Intent("dismiss_alarm")
 

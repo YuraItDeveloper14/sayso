@@ -44,8 +44,9 @@ class SaysoDaemon:
         self.hotkey = PushToTalk(
             settings.hotkey_modifiers,
             settings.hotkey_key,
-            on_start=self._on_hold_start,
-            on_stop=self._on_hold_stop,
+            on_start=self.begin_listening,
+            on_stop=self.finish_listening,
+            on_cancel=self.cancel_listening,
         )
         self._jobs = queue.Queue()
         self._worker = threading.Thread(
@@ -92,7 +93,17 @@ class SaysoDaemon:
 
     # ----------------------------------------------------------------- hotkey
 
-    def _on_hold_start(self):
+    # Listening is driven from three places - the global hotkey, the tally lamp
+    # on the dashboard, and the API - so all three share these.
+
+    @property
+    def is_listening(self):
+        return self.recorder.is_recording
+
+    def begin_listening(self):
+        if self.recorder.is_recording:
+            return False
+
         # Reaching for the key is how you react to a ringing alarm, so treat it
         # as dismissing one.
         if sounds.stop_alarm():
@@ -103,22 +114,35 @@ class SaysoDaemon:
         except MicUnavailable as exc:
             bus.set_status(events.ERROR, "microphone unavailable")
             bus.publish("log", level="error", message=f"Microphone error: {exc}")
-            return
+            return False
 
         if settings.click_sounds:
             sounds.click_on()
         detail = "listening" if self.model_ready else "listening (model still loading)"
         bus.set_status(events.LISTENING, detail)
+        return True
 
-    def _on_hold_stop(self):
+    def finish_listening(self):
         audio = self.recorder.stop()
         if settings.click_sounds:
             sounds.click_off()
         if audio is None:
             bus.set_status(events.IDLE, "too short, ignored")
-            return
+            return False
         bus.set_status(events.TRANSCRIBING, "transcribing")
         self._jobs.put(("audio", audio, time.time()))
+        return True
+
+    def cancel_listening(self):
+        """Throw the recording away without transcribing it."""
+        if not self.recorder.is_recording:
+            return False
+        self.recorder.stop()
+        if settings.click_sounds:
+            sounds.click_off()
+        bus.publish("transcript", text="", source="cancelled")
+        bus.set_status(events.IDLE, "cancelled")
+        return True
 
     # ----------------------------------------------------------------- worker
 

@@ -18,7 +18,7 @@ MODIFIER_KEYS = {
 
 
 class PushToTalk:
-    def __init__(self, modifiers, key, on_start, on_stop):
+    def __init__(self, modifiers, key, on_start, on_stop, on_cancel=None):
         self.required = set(m.lower() for m in modifiers)
         self.key_char = key.lower()
         self.key_vk = ord(key.upper())
@@ -26,6 +26,7 @@ class PushToTalk:
         self.key_ctrl_char = chr(ord(key.upper()) - 64)
         self.on_start = on_start
         self.on_stop = on_stop
+        self.on_cancel = on_cancel
 
         self._held_modifiers = set()
         self._active = False
@@ -49,6 +50,13 @@ class PushToTalk:
         name = self._modifier_name(key)
         if name:
             self._held_modifiers.add(name)
+            return
+
+        # Escape while still holding the key throws the recording away. You
+        # realise you said the wrong thing before you have finished saying it,
+        # and this is the only moment where that is still free.
+        if key == keyboard.Key.esc:
+            self._abandon()
             return
 
         if not self._is_trigger(key):
@@ -80,6 +88,16 @@ class PushToTalk:
                 return
             self._active = False
         self.on_stop()
+
+    def _abandon(self):
+        """Discard whatever is being recorded. Releasing the key after this
+        does nothing, because `_active` is already false."""
+        with self._lock:
+            if not self._active:
+                return
+            self._active = False
+        if self.on_cancel is not None:
+            self.on_cancel()
 
     def start(self):
         self._listener = keyboard.Listener(

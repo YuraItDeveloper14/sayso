@@ -305,15 +305,6 @@ def forget_alias(phrase):
     return Result(True, f'Forgot "{removed["phrase"]}"', f"Forgot {removed['phrase']}")
 
 
-def list_aliases():
-    aliases = alias_store.all()
-    if not aliases:
-        return Result(True, "No shortcuts taught yet", "You have not taught me any shortcuts yet")
-    parts = [f'{a["phrase"]} → {a["target"]}' for a in aliases]
-    spoken = ". ".join(a["phrase"] for a in aliases)
-    return Result(True, " | ".join(parts), f"You taught me: {spoken}")
-
-
 # -------------------------------------------------------------------- undo
 
 
@@ -354,7 +345,6 @@ HANDLERS = {
     "dismiss_alarm": lambda p: dismiss_alarm(),
     "teach_alias": lambda p: teach_alias(p["phrase"], p["target"]),
     "forget_alias": lambda p: forget_alias(p["phrase"]),
-    "list_aliases": lambda p: list_aliases(),
     "undo": lambda p: undo(),
     "browser": lambda p: browser_action(p["action"]),
     "noise": lambda p: noise(),

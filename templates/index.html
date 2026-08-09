@@ -30,10 +30,12 @@
 <section class="desk">
 
   <div class="tally-bay">
-    <div class="tally" id="tally" data-state="loading">
+    <button class="tally" id="tally" data-state="loading" type="button"
+            aria-label="Click to start listening, click again to send">
       <span class="tally-glass"></span>
-    </div>
+    </button>
     <p class="tally-state" id="tally-state">starting up</p>
+    <button class="tally-cancel" id="tally-cancel" type="button" hidden>Cancel · Esc</button>
   </div>
 
   <div class="meter-bay">
@@ -151,7 +153,7 @@
       <div class="phrase-group">
         <h3>Teach it</h3>
         <button class="phrase">when I say my class open classroom.google.com</button>
-        <button class="phrase">what shortcuts do I have</button>
+        <button class="phrase">when I say let's work open notion and github</button>
         <button class="phrase">undo that</button>
       </div>
       <div class="phrase-group">
