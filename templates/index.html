@@ -1,0 +1,103 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sayso — voice control for your laptop</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%230b0d12'/><circle cx='50' cy='50' r='22' fill='%238b7cf6'/><circle cx='50' cy='50' r='9' fill='%230b0d12'/></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-eye" aria-hidden="true"></span>
+    <span class="brand-name">Sayso</span>
+    <span class="brand-tag">offline voice control</span>
+  </div>
+  <div class="topbar-right">
+    <span class="chip" id="model-chip">{{ model }}</span>
+    <span class="chip chip-key">Hold <kbd>{{ hotkey }}</kbd></span>
+  </div>
+</header>
+
+<section class="stage">
+  <div class="orb-wrap">
+    <div class="orb" id="orb">
+      <span class="orb-ring"></span>
+      <span class="orb-core"></span>
+    </div>
+    <div class="status-line">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">connecting…</span>
+    </div>
+  </div>
+
+  <div class="stage-readout">
+    <p class="readout-label">Heard</p>
+    <p class="readout-transcript" id="transcript">Hold <kbd>{{ hotkey }}</kbd> and say something like “open YouTube through Google”.</p>
+    <p class="readout-result" id="result"></p>
+  </div>
+</section>
+
+<main class="grid">
+
+  <section class="panel panel-activity">
+    <div class="panel-head">
+      <h2>Activity</h2>
+      <button class="ghost-btn" id="clear-history">Clear</button>
+    </div>
+    <ol class="feed" id="feed">
+      <li class="feed-empty">Nothing yet. Say a command or type one below.</li>
+    </ol>
+    <form class="composer" id="composer" autocomplete="off">
+      <input type="text" id="command-input" placeholder="Type a command — “note buy milk”, “search lofi on youtube”…" aria-label="Type a command">
+      <button type="submit">Run</button>
+    </form>
+  </section>
+
+  <section class="panel panel-notes">
+    <div class="panel-head">
+      <h2>Notes <span class="count" id="note-count">0</span></h2>
+      <button class="ghost-btn" id="clear-notes">Clear</button>
+    </div>
+    <ul class="notes" id="notes">
+      <li class="feed-empty">No notes yet. Try “note: finish the demo”.</li>
+    </ul>
+    <form class="composer composer-notes" id="note-form" autocomplete="off">
+      <input type="text" id="note-input" placeholder="Add a note by hand…" aria-label="Add a note">
+      <button type="submit">Add</button>
+    </form>
+  </section>
+
+  <section class="panel panel-help">
+    <div class="panel-head"><h2>What Sayso understands</h2></div>
+    <div class="help-grid">
+      <div class="help-group">
+        <h3>Open &amp; search</h3>
+        <button class="example">open youtube</button>
+        <button class="example">open youtube through google</button>
+        <button class="example">google how to pitch a hackathon project</button>
+        <button class="example">search lofi beats on youtube</button>
+        <button class="example">go to github.com</button>
+      </div>
+      <div class="help-group">
+        <h3>Notes</h3>
+        <button class="example">note: finish the slides, email the mentor</button>
+        <button class="example">remind me to submit before midnight</button>
+        <button class="example">read my notes</button>
+        <button class="example">what do I have today</button>
+        <button class="example">check off 1</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <span>Everything runs on this machine — speech recognition, parsing and speech output all work with the Wi-Fi off.</span>
+</footer>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

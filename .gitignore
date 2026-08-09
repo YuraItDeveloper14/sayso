@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Runtime state: notes, command history, downloaded speech models.
+data/*.json
+models/
+
+# Machine-local tool config.
+.claude/settings.local.json
+.DS_Store

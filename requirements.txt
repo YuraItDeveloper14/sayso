@@ -1,0 +1,10 @@
+flask==3.0.3
+faster-whisper==1.0.3
+# faster-whisper 1.0.3 was built against huggingface-hub 0.x and imports
+# `requests` directly; hub 1.x dropped that dependency, so both are pinned.
+huggingface-hub>=0.23,<1.0
+requests>=2.31
+sounddevice==0.4.7
+numpy==1.26.4
+pynput==1.7.7
+pyttsx3==2.90
