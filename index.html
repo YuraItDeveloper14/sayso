@@ -107,6 +107,11 @@
   .note { font-size: 13px; color: var(--dim); line-height: 1.6; margin: 14px 0 0; }
   .site-foot { text-align: center; padding: 30px 0 0; color: var(--dim); font-size: 12.5px; }
   .site-foot a { color: var(--sand); }
+
+  /* The in-page jump is eased in script so it can be slower than the browser's
+     own smooth scroll. This is the fallback for anyone with JS disabled. */
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
@@ -238,5 +243,40 @@ py -3.12 -m venv .venv
   </footer>
 
 </div>
+
+<script>
+  /* An eased in-page jump. The browser's own smooth scroll is fixed at a speed
+     that feels like a snap on a short page, so this runs its own ease over a
+     duration that scales with the distance travelled. */
+  const EASE = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  function glideTo(target) {
+    const start = window.scrollY;
+    const end = target.getBoundingClientRect().top + start - 12;
+    const distance = end - start;
+    // 700 ms for a short hop, up to 1500 ms across a long page.
+    const duration = Math.min(1500, Math.max(700, Math.abs(distance) * 0.6));
+    let began = null;
+
+    function step(now) {
+      if (began === null) began = now;
+      const progress = Math.min(1, (now - began) / duration);
+      window.scrollTo(0, start + distance * EASE(progress));
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  document.querySelectorAll('a[href^="#"]').forEach((link) => {
+    link.addEventListener("click", (event) => {
+      const target = document.querySelector(link.getAttribute("href"));
+      if (!target || still.matches) return;   // let the browser handle it
+      event.preventDefault();
+      glideTo(target);
+      history.replaceState(null, "", link.getAttribute("href"));
+    });
+  });
+</script>
 </body>
 </html>

@@ -14,7 +14,7 @@ from flask import Flask, Response, jsonify, render_template, request
 
 from . import __version__
 from .aliases import store as alias_store
-from .config import ROOT, settings
+from .config import ASSETS, settings
 from .connectors import registry
 from .daemon import daemon
 from .events import bus
@@ -29,8 +29,8 @@ from .undo import stack
 
 app = Flask(
     __name__,
-    template_folder=str(ROOT / "templates"),
-    static_folder=str(ROOT / "static"),
+    template_folder=str(ASSETS / "templates"),
+    static_folder=str(ASSETS / "static"),
 )
 
 

@@ -12,7 +12,7 @@ import os
 import sys
 from pathlib import Path
 
-from .config import ROOT
+from .config import ASSETS, FROZEN, ROOT
 
 STARTUP_DIR = (
     Path(os.environ.get("APPDATA", Path.home()))
@@ -43,11 +43,18 @@ def install():
     try:
         shell = win32com.client.Dispatch("WScript.Shell")
         link = shell.CreateShortCut(str(SHORTCUT))
-        link.Targetpath = str(_pythonw())
-        link.Arguments = f'"{ROOT / "run.py"}" --no-browser'
+        if FROZEN:
+            # The built app is its own launcher; there is no script to point at.
+            link.Targetpath = sys.executable
+            link.Arguments = "--no-browser"
+        else:
+            link.Targetpath = str(_pythonw())
+            link.Arguments = f'"{ROOT / "run.py"}" --no-browser'
         link.WorkingDirectory = str(ROOT)
         link.Description = "SaySo - offline voice control"
-        link.IconLocation = str(ROOT / "extension" / "icons" / "icon128.png")
+        icon = ASSETS / "static" / "sayso.ico"
+        if icon.exists():
+            link.IconLocation = str(icon)
         link.save()
     except Exception as exc:
         return False, str(exc)

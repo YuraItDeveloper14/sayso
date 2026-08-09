@@ -1,11 +1,28 @@
 ﻿"""Settings for SaySo, persisted to data/settings.json."""
 
 import json
+import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+# Two roots, because a frozen build has two different places to look.
+#
+#   ASSETS  templates and stylesheets. Bundled inside the executable and
+#           extracted to a temporary folder, so it is read-only.
+#   ROOT    notes, settings, keys, downloaded models. Must live next to the
+#           executable and survive a restart, so it can never be the temp
+#           folder.
+#
+# Running from source, both are the repository.
+FROZEN = getattr(sys, "frozen", False)
+if FROZEN:
+    ASSETS = Path(sys._MEIPASS)
+    ROOT = Path(sys.executable).resolve().parent
+else:
+    ROOT = Path(__file__).resolve().parent.parent
+    ASSETS = ROOT
+
 DATA_DIR = ROOT / "data"
-DATA_DIR.mkdir(exist_ok=True)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 NOTES_FILE = DATA_DIR / "notes.json"
 HISTORY_FILE = DATA_DIR / "history.json"

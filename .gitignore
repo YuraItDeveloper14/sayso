@@ -6,6 +6,11 @@ __pycache__/
 data/*.json
 models/
 
+# PyInstaller output.
+build/
+dist/
+*.spec
+
 # Machine-local tool config.
 .claude/settings.local.json
 .DS_Store
