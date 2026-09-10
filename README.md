@@ -5,6 +5,11 @@
 <!-- badges -->
 [![CI](https://github.com/YuraItDeveloper14/sayso/actions/workflows/tests.yml/badge.svg)](https://github.com/YuraItDeveloper14/sayso/actions/workflows/tests.yml) [![License](https://img.shields.io/github/license/YuraItDeveloper14/sayso?color=blue)](LICENSE) [![Last commit](https://img.shields.io/github/last-commit/YuraItDeveloper14/sayso)](https://github.com/YuraItDeveloper14/sayso/commits)
 
+<!-- preview -->
+<p align="center">
+  <img src="docs/preview.jpg" alt="sayso — live site" width="900">
+</p>
+
 **Hold a key. Say what you want. It happens.**
 
 An offline voice controller for your laptop, with a live web dashboard.
