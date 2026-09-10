@@ -1,0 +1,25 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  intents:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Парсер інтентів не тягне ні аудіо, ні модель, ні браузер —
+      # тому набір запускається без requirements.txt.
+      - name: Intent parser tests
+        run: python tests/test_intents.py
+
+      - name: Every module compiles
+        run: python -m compileall -q sayso tools
